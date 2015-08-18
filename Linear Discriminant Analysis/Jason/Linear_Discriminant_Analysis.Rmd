@@ -1,0 +1,161 @@
+---
+title: "Linear Discriminant Analysis"
+author: "Jason"
+date: "Wednesday, May 06, 2015"
+output:
+  pdf_document:
+    latex_engine: xelatex
+mainfont: Calibri
+---
+# 1. Linear Discriminant Analysis(LDA)
+
+It mainly uses the Bayes' theroem. So, basically, we have two terms:
+
+* Prior probability: $p(Y=y)=\pi_{k}$
+
+* Density function: $f_{k}(x)=Pr(X=x|Y=y)$
+
+And using above terms, we can compute posterior probability: $p_{k}=Pr(Y=y|X=x)=\dfrac{\pi_{k}f_{k}(x)}{\sum_{l=1}^K \pi_{l}f_{l}(x)}$
+
+When estimaing the prior probability $\pi_{k}$, we simply calculate the sample proportion in our data, which is $\dfrac{n_{k}}{n}$. However, to obtain $f_{k}(x)$, we have to make some assumption that the density function is from an underlying distribution and then estimate the parameters by data. Normally, as we know, we will assume that it is from normal distribution.
+
+\begin{center}
+$f_{k}(x)=\dfrac{1}{\sqrt{2\pi}\sigma_{k}}exp(-\dfrac{(x-\mu_{k})^2}{2\sigma_{k}^{2}})$
+\end{center}
+If all $\sigma$ are equal, we can get
+\begin{center}
+$p_{k}=\dfrac{\pi_{k}\dfrac{1}{\sqrt{2\pi}\sigma}exp(-\dfrac{(x-\mu_{k})^2}{2\sigma^{2}})}{\sum_{l=1}^{K}\pi_{l}\dfrac{1}{\sqrt{2\pi}\sigma}exp(-\dfrac{(x-\mu_{l})^2}{2\sigma^{2}})}$
+\end{center}
+If the probability of this obervation belonging to l given that $X=x$ is the largest among $1 ~ k$, then we will classify it into l category. Because all the denominator are the same, we only have to compare the numerator, i.e.
+\begin{center}
+$\pi_{k}\dfrac{1}{\sqrt{2\pi}\sigma}exp(-\dfrac{(x-\mu_{k})^2}{2\sigma^{2}})$
+\end{center}
+After removing constant and take log, we get
+\begin{center}
+$\delta_{k}(x)=x\cdot\dfrac{\mu_{k}}{\sigma^{2}}-\dfrac{\mu_{k}^2}{2\sigma^{2}}+log(\pi_{k})$
+\end{center}
+For each parameter, we can use the following estimator to estimate their value.
+
+* $\hat \mu_{k}=\dfrac{1}{n_{k}}\sum_{i:y_{i}=k}x_{i}$
+
+* $\hat \sigma^{2}=\dfrac{1}{n-K}\sum_{k=1}^K\sum_{i:y_{i}=k}(x_{i}-\mu_{i})^{2}$
+
+* $\hat \pi_{k}=\dfrac{n_{k}}{n}$
+
+\newpage
+
+When the number of independent variable, p, is bigger than one, our distributon will become multivariate normal distribution. Its pdf is:
+
+\begin{center}
+$f(x)=\dfrac{1}{(2\pi)^{p/2}(|\sum|)^{1/2}}exp(-\dfrac{1}{2}(x-\mu)^{T}\sum^{-1}(x-\mu))$
+\end{center}
+
+We assume that the observations in the kth class are drawn from a multivariate normal distribution $N(\mu_{k}, \sum)$. As the approach in p=1, we can use Bayes' theroem to compute the probability and predict the observation is from kth group if its probability is the largest.
+
+Assumptions
+
+* Multivariate normal distribution for independent variables.
+
+* Equal variance and covariance, i.e. same covariance matrix.
+
+# 2. Textbook Example
+```{r, message=FALSE}
+library(ISLR)
+library(car)
+
+Default$default <- as.numeric(as.character(
+recode(Default$default, "'Yes'='1'; 'No'='0'")))
+```
+
+```{r}
+library(MASS)
+#Model fit
+LDA <- lda(default ~ balance + student, data=Default)
+#Fitted value
+Prediction <- predict(LDA, Default)$class
+t <- table(Predict=Prediction, True=Default$default)
+#addmargins: comput all margin of the table 
+#ftable: make the table format nicer
+ftable(addmargins(t))
+```
+
+```{r}
+threshold <- 0.2
+Prediction_new <- (predict(LDA, Default)$posterior[, 2] > threshold)*1
+
+t_new <- table(Predict=Prediction_new, True=Default$default)
+ftable(addmargins(t_new))
+```
+
+\newpage
+
+\begin{center}
+\begin{table}[!th]
+\centering
+\begin{tabular}{|l|c|r|}
+\hline
+Confusion matrix & True 0 & True 1 \\ 
+Predicted 0 & True negative(TN) & False negative(FN) \\
+Predicted 1 & False positive(FP) & True positive(TP) \\
+\hline
+\end{tabular}
+\label{ex:table}
+\end{table}
+\end{center}
+
+There are several measure that can help us to determine the performance of our model or classifier.
+
+1. Accuracy: $\dfrac{TP+TN}{TP+FP+TN+FN}$
+
+2. Specificity: $\dfrac{TN}{TN+FP}$
+
+3. True Positive Rate (Sensitivity, Recall): $\dfrac{TP}{TP+FN}$
+
+4. False Positive Rate (Type I error, 1 - Specificity): $\dfrac{FP}{TN+FP}$
+
+5. Positive Predicted Value (Precision, 1 - False Discovery Rate): $\dfrac{TP}{TP+FP}$
+
+6. Negative Predicted Value: $\dfrac{TN}{TN+FN}$
+
+```{r, message=FALSE}
+library(caret)
+#It will give you all measure
+confusionMatrix(t, positive="1")
+```
+
+```{r, message=FALSE, fig.width=5, fig.align='center'}
+library(AUC)
+plot(roc(predict(LDA, Default)$posterior[, 2], as.factor(Default$default)),
+     col="blue")
+auc_value <- auc(roc(predict(LDA, Default)$posterior[, 2],
+                     as.factor(Default$default)))
+text(0.4, 0.6, paste("AUC = ", round(auc_value, 4)))
+```
+
+\newpage
+
+# 3. Textbook Graph
+```{r}
+x <- seq(-5, 5, by=0.01)
+```
+
+```{r, fig.align='center', fig.width=6.5, fig.height=3.6}
+par(mfrow=c(1, 2))
+
+plot(x, dnorm(x, 1.25, 1), ylab="", xlim=c(-5, 5), type="l",
+     lwd=2, col="mediumorchid3")
+lines(x, dnorm(x, -1.25, 1), lwd=2, col="forestgreen")
+abline(v=0, lty=2, lwd=2)
+
+#Example
+x1 <- rnorm(20, 1.25, 1)
+x2 <- rnorm(20, -1.25, 1)
+g <- rep(c(1, 2), each=20)
+
+hist(x2, col="forestgreen", xlim=c(-5, 5), border="forestgreen",
+     main="", xlab="", ylab="")
+hist(x1, add=T, col="mediumorchid3", density=20)
+abline(v=0, lty=2, lwd=2)
+abline(v=(mean(x1) + mean(x2))/2, lwd=2)
+```
+
