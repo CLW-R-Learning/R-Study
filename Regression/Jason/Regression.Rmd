@@ -1,0 +1,324 @@
+---
+title: "CLW_R_Learning：Regression"
+author: "Jason Wang"
+date: "Tuesday, April 07, 2015"
+output:
+  pdf_document:
+    latex_engine: xelatex
+fontsize: 12pt
+---
+
+\begin{center}
+Regression equation: $Y_{i}$ = $\alpha$ + $\beta_{1}x_{i1}$ + $\beta_{2}x_{i2}$ + ... + $\beta_{k}x_{ik}$ + $\epsilon_{i}$, $i$ = 1, 2,$\cdots$, n
+\end{center}
+
+* $\beta_{0}$, $\beta_{1}$, $\beta_{2}$,$\cdots$, $\beta_{k}$ are parameters.
+* $x_{i1}$, $x_{i2}$, $x_{i3}$,$\cdots$, $x_{ik}$ are constant.
+* All of the $\epsilon_{i}$ are identically and independently distributed from $N$(0, $\sigma^2$).
+
+For matrix expression, $Y$ = $X$$\beta$
+\begin{displaymath}
+\mathbf{Y} = \begin{bmatrix}
+Y_{1}\\ Y_{2}\\ \vdots \\ Y_{n}\\ 
+\end{bmatrix},　
+\mathbf{X} = \begin{bmatrix}
+1 & x_{11} & \cdots & x_{1k}\\ 
+1 & x_{21} & \cdots & x_{2k}\\ 
+\vdots & \vdots & \ddots & \vdots\\ 
+1 & x_{n1} & \cdots & x_{nk}\\ 
+\end{bmatrix},
+\mathbf{\beta} = \begin{bmatrix}
+\beta_{0}\\  \beta_{1}\\  \vdots\\  \beta_{k}\\ 
+\end{bmatrix}
+\end{displaymath}
+```{r}
+#Data
+data(mtcars)
+#Cars' names(32)
+dimnames(mtcars)[[1]]
+```
+
+```{r}
+#Variable(11)
+dimnames(mtcars)[[2]]
+```
+
+　From my background perspective, I think that mpg(miles per gallon) will be related to hp(Gross horse power), wt(Weight) and am(Automatic v.s manual). After some researches, I found that vs(V-engine/Straight-engine) and carb(Carburetors) seem to be important factors.
+
+\newpage
+
+#Plot
+```{r}
+#Overall view of data(Remove the variable I do not consider)
+#Also change the color by am, black=auto and red=manual
+pairs(mtcars[, -c(2, 3, 5, 7, 8, 9, 10)], col=mtcars$am + 1)
+```
+　As you see above, there is a strong linear relationship between mpg and hp as well as wt. However, we also observe that it exist a relationship between hp and wt. It may happen **multicollinearity problem** when we fit model. Also, the lower number of carburetors a car have, the more efficient a car is.
+```{r}
+#Correlation
+round(cor(mtcars[, -c(2, 3, 5, 7, 8, 9, 10)]), 4)
+```
+　For view purpose, I round the correlation to 4 digit. hp and wt, as well as hp and carb, have high correlation. Again, it manifests that we should worried about the **multicollinearity problem**. Later, we will fit a model on mpg with variables, hp, wt, vs, am and carb. So far, we will not consider any interaction term.
+
+#Fit Model
+```{r}
+#Convert vs and am to factor
+mtcars$vs <- as.factor(mtcars$vs)
+mtcars$am <- as.factor(mtcars$am)
+#Using lm to fit model
+m1 <- lm(mpg ~ hp + wt + vs + am + carb, data=mtcars)
+summary(m1)
+```
+
+We can find that the adjusted R-squared $R_{a}^2$ = 1 - $\frac{\frac{SSE}{n - p}}{\frac{SSTO}{n - 1}}$ is `r round(summary(m1)$adj.r.square, 4)`. Our model have quite a nice explain ability on our dependent variable mpg(miles per gallon.) However, interestingly, it seems that no all the variables are highly significant in the model. This will be a problem that we should deal with later. So, first, let's come to two test, overall test and marginal test:
+
+\begin{center}
+$H_{0}$ : $\beta_{1}$ = $\beta_{2}$ = $\cdots$ = $\beta_{k}$ = 0\\
+
+$H_{1}$ : $\beta_{i}$ $\neq$ 0 for some $i$
+\end{center}
+
+For overall test, we will examine F-statistic = $\frac{MSR}{MSE}$ = `r round(summary(m1)$fstatistic[1], 2)` < $F_{0.05,  `r summary(m1)$fstatistic[2]`,  `r summary(m1)$fstatistic[3]`}$. Hence, we reject null hypothesis $H_{0}$. Some of the variables have effects in the model. 
+
+\begin{center}
+$H_{0}$ : $\beta_{i}$ = 0\\
+
+$H_{1}$ : $\beta_{i}$ $\neq$ 0 
+\end{center}
+
+For marginal test, we take hp as an example. We can compute the t-statistic = $\frac{b_{hp}}{sd(b_{hp})}$ = `r round(coef(summary(m1))[2, 3], 2)` < $t_{0.05, 30}$. Hence, we reject $H_{0}$ which implied that when other variables exist in the model, hp(Horse power) can be removed. However, in the previous graph, we indeed observed there is a linear relationship between both variables. Here come the problem, *Multicollinearity*.(Note that the t-test here can be replaced by F-test because $(t_{n - p})^2$ = $F_{(1, n - p)}$. However, F-test only does one-tail test, not two-tail.)
+
+Before we deal with the **multicollinearity**, we explore more on the problem of testing. Actually, we can test multiple in one times. We generalize all the test below:
+
+\begin{center}
+$H_{0}$ : Reduced model (less variables)\\
+
+$H_{1}$ : Full modell (more variables)\\
+　\\
+F-statistics = $\frac{\frac{SSE(R) - SSE(F)}{df_{R} - df_{F}}}{\frac{SSE(F)}{df_{F}}}$　$~$ $F_{(df_{R} - df_{F}), df_{F}})$
+\end{center}
+```{r}
+#Model with intercept only
+m2 <- update(m1, ~ . - .)
+#The same test as testing hp
+anova(m1, m2)
+```
+
+```{r}
+#Model with hp
+m3 <- update(m1, ~ . - hp)
+#The same test as testing hp
+anova(m1, m3)
+```
+All the results are the same as previous test. Besides, we also can test multiple variables.
+```{r}
+#Model with hp
+m4 <- update(m1, ~  . - hp - wt)
+#The same test as testing hp
+anova(m1, m4)
+```
+
+#Regression Problem
+_1. Multicollinearity_
+
+We use VIF(Variance Inflation Factor) to detect that whether there is multicollinearity between variable. Below situation might indicate multicollinearity in the model:
+
+* Remove or add a variable in model and this action causes dramatically change of other variables' coefficient.
+
+* We consider it as important variable, while it is not statistically significant.
+
+* The sign of variables are opposited to our expectation.
+
+* The confidence interval of important variable are very big.
+```{r}
+library(car)
+vif(m1)
+```
+\begin{center}
+$VIF_{k}$ = $\frac{1}{1 - R_{k}^2}$, k = 1, 2, ..., p-1
+\end{center}
+
+$R_{k}^2$ is the R-square of model that the rest of variable fit on the variable $x_{k}$. 
+
+In our example, all the variables' VIF is bigger than 1, especially hp and wt. Recall that indeed the correlation between variable is high. Probably, we should remove some variables. We start from the large correlation, hp and carb. I choose to remove carb because I think hp(horse power) will be a more important variable when it comes to evaluating mpg(miles per gallon).
+
+If there is any variable's VIF greater than 10, it would be a strong warning that there is a multicollinearity. Also, if the average of VIF is greater that 1, it might be another warning too. However, we cannot judge which variable is linear-dependent on other variable directly by VIF. One way may be that repeat the step of adding and removing variable to make sure which variable is linear-dependent in the model.
+
+Here, we construe the hp(horse power) as our main variable. Hence, in the following model, I will keep hp in my model
+```{r}
+m5 <- update(m1, ~ . - wt)
+summary(m5)
+```
+
+We check the vif again.
+
+```{r}
+vif(m5)
+```
+
+We removed the carb(carburetor) this time
+
+```{r}
+m6 <- update(m1, ~ . - wt - carb)
+summary(m6)
+```
+
+The model seems to be quite good while it seems that we can remove the vs.
+
+```{r}
+m7 <- update(m1, ~ . - wt - carb - vs)
+summary(m7)
+```
+
+After fixing the multicollinearity, we turn to outliers.
+
+_2. Outliers_
+
+Outliers from x perspective
+
+We use leverage($h_{ii}$) to detect x-outliers.
+\begin{center}
+$h_{ii}$ = $\frac{1}{n}$ + $\frac{(x_{i} - \bar{x})^2}{\Sigma (x_{i} - \bar{x})^2}$
+\end{center}
+
+$h_{ii}$ > 0.5 means that the effect of leverage is large.
+
+0.2 $\leq$ $h_{ii}$ $\leq$ 0.5 means that the effect of leverage is small.
+```{r}
+#No hat value is bigger than 0.5
+sum(hatvalues(m7) > 0.5)
+```
+Outliers from y perspective
+
+We can use residuals to detect y outlier. Here we use standardized residuals:
+
+\begin{center}
+$e_{i}^{*}$ = $\frac{e_{i}}{\sqrt{MSE}}$
+\end{center}
+```{r, fig.align='center', fig.height=5, fig.width=5}
+#Stand
+e <- rstandard(m7)
+plot(e); abline(h=0); abline(h=c(-2, 2), col="red", lty=2)
+```
+The y outlier seems to be not so serious. Hence, we do not need to do transformation or other procedure to correct our model. After checking outliers, we turn to examine whether these outliers or other points in the data are extremely influential.
+
+__3. Influential points__
+
+Here, we introduce three influential measures: DFFITS, DFBETAS and Cook's Distance.
+
+* DFFITS: The difference between fitted value(whole data) and fitted value(remove one data point). If DFFITS is big, it indicates that the data is influential to model. Here are two empirical standard:
+
+|$(DFFITS)_{i}$| > 1 (for small and moderate data) or |$(DFFITS)_{i}$| > 2$\sqrt{\frac{p}{n}}$ (for large data).
+
+* DFBETAS: The difference between coefficients with whole data and the coefficients(removing one data). Same as DFFITS, if DFBETAS is large, then the data is influential. Here are two empirical standard:
+
+|$(DFBETAS)_{i}$| > 1 (for small and moderate data) or |$(DFBETAS)_{i}$| > $\frac{2}{\sqrt{n}}$ (for large data).
+
+* Cook's Distance: It is a comprehensive indicator that measures whether certain data point is influential.
+
+The following code can help us find out all the measures.
+```{r}
+#DFFITS
+DFFITS <- dffits(m7)
+#DFBETAS
+DFBETAS <- dfbetas(m7)
+#Cook's Distance
+Cook_D <- cooks.distance(m7)
+
+round(data.frame(DFFITS=DFFITS, DFBETAS=DFBETAS, Cook.Distance=Cook_D), 4)
+```
+There are some influential points in mtcars data. However, we do not have the sufficient knowledge to determine that whether those data points are irregular or those points are important that we should keep each of them in the model. We will not remove any data.(We also think that it should be.)
+
+In R, there is a function that provide all the influential measures. We can utilize it to determine the influential points.(We do not show the result here)
+```{r, results='hide'}
+#Summary
+influence.measures(m1)
+```
+
+
+#Diagnostic Checking
+1. Normality
+```{r, fig.align='center', fig.height=5, fig.width=5}
+qqnorm(resid(m7))
+qqline(rnorm(100))
+```
+
+```{r, fig.align='center', fig.height=5, fig.width=5}
+qqnorm(rstandard(m7))
+qqline(rnorm(100))
+```
+\begin{center}
+$H_{0}$ : residuals are from Normal Distribution \\
+$H_{1}$ : residual are not from Normal Distribution
+\end{center}
+```{r}
+ks.test(resid(m7), "pnorm")
+```
+The p-value is `r ks.test(resid(m7), "pnorm")$p` is less that $\alpha$(0.05). The residual is not from the normal distribution.
+
+Hence, we can use the Box-Cox transformation to tranforms the data.
+```{r, fig.align='center'}
+library(MASS)
+boxcox(m7)
+```
+
+```{r}
+(lambda <- boxcox(m7)$x[which.max(boxcox(m7)$y)])
+```
+
+
+2. Constant Variance
+```{r}
+plot(fitted(m1), resid(m1))
+```
+
+From the graph above, we judge that the variance is contant.
+
+3. Independent
+
+\begin{center}
+$H_{0}$ : residuals are independent\\
+
+$H_{1}$ : residuals are not independent
+\end{center}
+```{r}
+library(car)
+durbinWatsonTest(m7)
+```
+The p-value is greater that $\alpha$(0.05). Hence, we do not reject the independence assumption.
+
+#Model Identification
+
+We can also do stepwise regression to selection our model while it really need more understanding about the data and its field. By that, we can judge our model more correctly and accurately. Heve, we just show the code in R that can do the step wise regression.
+```{r}
+library(leaps)
+```
+
+```{r}
+X <- mtcars[, c(4, 6, 8, 9 , 11)]
+y <- mtcars$mpg
+```
+
+```{r, eval=FALSE}
+out <- summary(regsubsets(X, y, nbest=2, nvmax=ncol(X)))
+report <- cbind(out$which, out$adjr2, out$rss, out$bic, out$cp)
+report
+```
+
+#Interpretation
+
+\begin{center}
+mpg = `r round(coef(m7)[1], 4)` + `r round(coef(m7)[2], 4)` hp + `r round(coef(m7)[3], 4)` am
+\end{center}
+
+This is our final model. For fixed am(automatic or manual), per unit hp rise, the average mpg will be go down `r round(coef(m7)[2], 4)`. It also tells us that the automatic car will be more efficient than the manaul car.
+
+To conclude, when fitting a regression model, there is no a standard procedure to follow such as multicollinearity → outliers → influential points in this report. Instead, many step is interchangeable as long as the analysis is reasonable. Also, we do not consider interaction term which will be important when we fit a regression model, which is the future task we will discuss.
+
+#References
+*Multiple Regression http://www.statmethods.net/stats/regression.html
+
+* Regression Diagnostics http://www.statmethods.net/stats/rdiagnostics.html
+
+
+

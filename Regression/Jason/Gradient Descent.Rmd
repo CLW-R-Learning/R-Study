@@ -1,0 +1,87 @@
+---
+title: "Gradient descent"
+author: "Jason Wang"
+date: "Monday, April 20, 2015"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+Here, I would like to introduce a method, gradient descent, to solve the coefficient of regression.(From machine learning courses)
+
+Our cost function: J($\theta$) = $\frac{1}{n}$$\sum_{i=1}^n$ $(h_{\theta}(x_{i}) - y_{i})^2$
+
+Our goal: $minimize_{\theta}$ J($\theta$)
+
+Our solution;
+
+repeat until convergence{
+
+$\theta_{j}$ <- $\theta_{j}$ - $\alpha$$\frac{\partial}{\partial \theta}$J($\theta$)
+
+}
+```{r}
+#Gradient descent
+#A method to solve coefficient while would not
+#provide estimation of standard deviation
+Gradient_descent <- function(X, y, theta, alpha, iteration){
+    theta <- as.matrix(theta); n <- dim(as.matrix(X))[1]
+    Xnew <- as.matrix(cbind(rep(1, n), X))
+    outputlist <- list(); outputlist$Cost <- c(0)
+    for(i in 1:iteration){
+        outputlist$Cost[i] <- sum((Xnew %*% theta - y)^2)/n
+        temp <- theta[1] - alpha*sum(Xnew %*% theta - y)/n
+        temp2 <- theta[-1] - alpha*(t(Xnew[, -1])%*%(Xnew%*%theta - y))/n
+        theta[1] <- temp
+        theta[-1] <- temp2
+    }
+    outputlist$Final_theta <- theta
+    outputlist
+}
+#Demo
+data(mtcars)
+X <- mtcars$hp
+y <- mtcars$mpg
+(my_theta <- Gradient_descent(X, y, c(30, 6), 0.000001, 10000)[[2]])
+```
+
+```{r}
+coef(lm(mpg ~ hp, data=mtcars))
+```
+
+```{r}
+X_all <- mtcars[, c(4, 6, 8, 9, 11)]
+(my_theta <- Gradient_descent(X_all, y, rep(1, 6), 0.00001, 10000)[[2]])
+```
+
+```{r}
+(my_theta <- Gradient_descent(X_all, y, c(30, rep(1, 5)), 0.00005, 10000)[[2]])
+```
+
+
+```{r}
+#Convert vs and am to factor
+mtcars$vs <- as.factor(mtcars$vs)
+mtcars$am <- as.factor(mtcars$am)
+#Using lm to fit model
+m1 <- lm(mpg ~ hp + wt + vs + am + carb, data=mtcars)
+
+coef(m1)
+```
+
+```{r}
+#New data
+new_data <- mtcars[, c(1, 4, 6)]
+#Scale the data
+new_data_scale <- scale(new_data)[1:32, 1:3]
+m2 <- lm(as.data.frame(new_data_scale))
+coef(m2)
+```
+
+```{r}
+X <- new_data_scale[, 2:3]
+y <- new_data_scale[, 1]
+(my_theta <- Gradient_descent(X, y, c(1, 1, 1), 0.01, 10000)[[2]])
+```
+
+

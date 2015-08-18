@@ -1,0 +1,40 @@
+#1
+順序:共線性、outlier, model selection, 診斷
+→ 沒有固定的順序，原則上就是做得合理就行了，要充分運用專業領域的知識，也可以多嘗試不同的模型。
+共線性會讓解釋係數沒有意義，迴歸係數的解釋「在其他變數固定之下，該變數變動一單位，Y變動多少」。
+
+#2
+outlier(leverage)
+→ leverage是用來判斷outlier的指標(以x的角度)。
+
+#3
+lm四個圖解釋
+→ 問JYLEE老師。
+
+#4
+cook's distance
+→ Influential Point的綜合性指標。
+
+#5
+outlier, influential point, 共線，做完然後咧？
+→ 如果模型配適好了，就可以做解釋下結論。
+
+#6
+找三個診斷的test
+→ Normal: ks.test、Constant Variance：殘差取絕對值之後排序，做Spearson Correlation、Independence：durbinWatsonTest。
+
+#7
+leaps中，CP的意思
+→ 將有不同參數的model算CP，如果CP越接近該模型的解釋變數個數，則該Model越好。
+
+#8
+anova與類別型變數
+see the following example：
+y <- rnorm(100)
+x2 <- as.factor(rep(1:10, 10))
+SSR sum((rep(tapply(y, x2, mean), 10) - mean(y))^2)
+SSE sum((y - rep(tapply(y, x2, mean), 10))^2)
+
+#9
+anova: mpg~wt+am vs. mpg~wt+qsec+am，am的解釋能力
+→ 問JYLEE老師。
