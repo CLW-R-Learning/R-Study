@@ -1,0 +1,143 @@
+---
+title: "Cross-Validation"
+author: "Jason"
+date: "Monday, May 25, 2015"
+output:
+  pdf_document:
+    fig_width: 5
+    latex_engine: xelatex
+mainfont: Calibri
+---
+
+```{r, message=FALSE}
+library(ISLR)
+#Our Data
+data(Auto)
+summary(Auto)
+```
+#1. Validation
+```{r}
+set.seed(1)
+#Index of train data
+train <- sample(392, 196)
+training <- Auto[train, ]
+testing <- Auto[-train, ]
+
+#Linear Regression
+m1 <- lm(mpg ~ horsepower, data=training)
+```
+
+```{r}
+MSE1 <- mean((testing$mpg - predict(m1, testing))^2)
+MSE1
+```
+
+```{r}
+#Different seeds
+set.seed(2)
+#Index of train data
+train <- sample(392, 196)
+training <- Auto[train, ]
+testing <- Auto[-train, ]
+
+#Linear Regression
+m2 <- lm(mpg ~ horsepower, data=training)
+```
+
+```{r}
+MSE2 <- mean((testing$mpg - predict(m1, testing))^2)
+MSE2
+```
+
+```{r}
+set.seed(2)
+#Index of train data
+train <- sample(392, 196)
+training <- Auto[train, ]
+testing <- Auto[-train, ]
+
+#Polynomial terms
+#p=1
+m1 <- lm(mpg ~ horsepower, data=training)
+#p=2
+m2 <- lm(mpg ~ poly(horsepower, 2), data=training)
+#p=3
+m3 <- lm(mpg ~ poly(horsepower, 3), data=training)
+#p=4
+m4 <- lm(mpg ~ poly(horsepower, 4), data=training)
+#p=5
+m5 <- lm(mpg ~ poly(horsepower, 5), data=training)
+```
+
+```{r}
+#p=1
+MSE_p1 <- mean((testing$mpg - predict(m1, testing))^2)
+#p=2
+MSE_p2 <- mean((testing$mpg - predict(m2, testing))^2)
+#p=3
+MSE_p3 <- mean((testing$mpg - predict(m3, testing))^2)
+#p=4
+MSE_p4 <- mean((testing$mpg - predict(m4, testing))^2)
+#p=5
+MSE_p5 <- mean((testing$mpg - predict(m5, testing))^2)
+MSE_all <- data.frame(p=c(1, 2, 3, 4, 5),
+                      MSE=c(MSE_p1, MSE_p2, MSE_p3,
+                            MSE_p4, MSE_p5))
+MSE_all
+```
+
+```{r,fig.align='center'}
+plot(MSE_all, main="MSE for Different Polynomial", type="b", col="dodgerblue")
+```
+
+#2. Cross-Validation - LOOCV
+```{r}
+set.seed(1)
+#Linear Regression
+glm1 <- glm(mpg ~ horsepower, data=Auto)
+#The package which provides function to do cross validation
+library(boot)
+cv1 <- cv.glm(Auto, glm1)
+cv1$delta
+
+#Another method by leverage hi
+mean(((glm1$y - fitted(glm1))/(1 - hatvalues(glm1)))^2)
+```
+
+```{r}
+#For different polynomial
+cv_error <- c()
+
+for(i in 1:5){
+  glm.fit <- glm(mpg ~ poly(horsepower, i), data=Auto)
+  cv_error[i] <- cv.glm(Auto, glm.fit)$delta[1]
+}
+
+cv_error
+```
+
+```{r,fig.align='center'}
+plot(1:5, cv_error, main="Cross Validation MSE for Different Polynomial",
+     xlab="p", ylab="MSE", type="b", col="dodgerblue")
+```
+
+#3. Cross-Validation - K-fold
+```{r}
+set.seed(17)
+#For different polynomial
+cv_error <- c()
+
+for(i in 1:10){
+  glm.fit <- glm(mpg ~ poly(horsepower, i), data=Auto)
+  cv_error[i] <- cv.glm(Auto, glm.fit, K=10)$delta[1]
+}
+
+cv_error
+```
+
+```{r, fig.align='center'}
+plot(1:10, cv_error, main="Cross Validation MSE for Different Polynomial",
+     xlab="p", ylab="MSE", type="b", col="dodgerblue")
+```
+
+
