@@ -1,0 +1,139 @@
+---
+title: "Bootstrap"
+author: "Jason"
+date: "Tuesday, May 26, 2015"
+output:
+  pdf_document:
+    fig_height: 5
+    fig_width: 5
+    latex_engine: xelatex
+---
+#Textbook Practice
+```{r}
+set.seed(1)
+#Package
+library(MASS)
+
+mu <- c(1, 1)
+Cov <- 0.5*1*sqrt(1.25)
+Sigma <- matrix(c(1, Cov, Cov, 1.25), byrow=T, ncol=2)
+
+data <- mvrnorm(100, mu, Sigma)
+```
+
+```{r, fig.align='center'}
+plot(data, xlab="x", ylab="y", main="Simulated Data")
+```
+
+```{r}
+#Function that outputs alpha
+alpha <- function(data){
+  sx <- var(data[, 1])
+  sy <- var(data[, 2])
+  sxy <- cor(data[, 1], data[, 2])
+  alpha <- (sy - sxy)/(sx + sy - 2*sxy)
+  alpha
+}
+```
+
+```{r}
+alpha(mvrnorm(100, mu, Sigma, empirical=T))
+```
+
+```{r}
+#Know the underlying population
+alpha_MC <- c()
+for(i in 1:1000){
+  alpha_MC[i] <- alpha(mvrnorm(100, mu, Sigma))
+}
+
+c(mean(alpha_MC), sd(alpha_MC))
+```
+
+```{r}
+#Bootstrap
+#Use Simulation data
+alpha_BS <- c()
+for(i in 1:1000){
+  I <- sample(1:100, 100, replace=T)
+  alpha_BS[i] <- alpha(data[I, ])
+}
+
+c(mean(alpha_BS), sd(alpha_BS))
+```
+
+```{r, fig.align='center', fig.width=7, fig.height=3}
+par(mfrow=c(1, 3))
+#MC
+hist(alpha_MC, main="Monte Carlo", xlab=expression(alpha), col="darkorange")
+abline(v=0.6, lwd=4, col="maroon")
+
+#BS
+hist(alpha_BS, main="Bootstrap", xlab=expression(alpha), col="dodgerblue")
+
+abline(v=0.6, lwd=4, col="maroon")
+#Box plot
+boxplot(alpha_MC, alpha_BS, names=c("Monte Carlo", "Bootstrap"), ylab=expression(alpha),
+        main="Boxplot", col=c("darkorange", "dodgerblue"))
+abline(h=0.6, col="maroon")
+```
+
+#Lab
+```{r}
+#Package
+library(boot)
+library(ISLR)
+
+#To use boot function, we need to adjust our alpha function
+
+alpha_fn <- function(data, index){
+  x <- data[index, 1]
+  y <- data[index, 2]
+  return((var(y) - cov(x, y))/(var(x) + var(y) - 2*cov(x, y)))
+}
+
+boot(Portfolio, alpha_fn, R=1000)
+```
+
+```{r}
+#Coefficient for Regression
+coef_fn <- function(data, index){
+  coef(lm(mpg ~ horsepower, data=data, subset=index))
+}
+
+coef_fn(Auto, 1:392)
+```
+
+```{r}
+coef_fn(Auto, sample(1:392, 392, replace=TRUE))
+```
+
+```{r}
+boot(Auto, coef_fn, R=1000)
+```
+
+```{r}
+summary(lm(mpg ~ horsepower, data=Auto))
+```
+
+```{r}
+#Categoric example
+y <- as.factor(rep(c(0, 2), 50))
+x <- rnorm(100, c(0, 2))
+
+glm.fit <- glm(y ~ x, family=binomial)
+
+#Cost function
+cost <- function(r, pi){
+  mean(abs(r - pi) > 0.5)
+}
+
+data <- data.frame(x, y)
+
+cv.glm(data, glm.fit, cost)$delta
+```
+
+```{r}
+cv.glm(data, glm.fit, cost, K=10)$delta
+```
+
