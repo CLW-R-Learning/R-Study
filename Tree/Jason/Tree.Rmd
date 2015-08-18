@@ -1,0 +1,128 @@
+---
+title: "Classification and Regression Tree, CART"
+author: "Jason"
+date: "2015年7月30日"
+output: 
+  pdf_document: 
+    fig_height: 5
+    latex_engine: xelatex
+  mainfont: Calibri
+  fontsize: 12pts
+---
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(comment="")
+knitr::opts_chunk$set(fig.align='center')
+```
+
+```{r package, message=FALSE}
+library(ISLR); library(MASS); library(tree)
+```
+
+# Regression Tree
+```{r data1}
+#Data in MASS package
+data(Boston)
+str(Boston)
+```
+
+```{r train&make_tree}
+set.seed(1)
+train <- sample(1:nrow(Boston), nrow(Boston)/2)
+Bostree <- tree(medv ~ ., data=Boston, subset=train)
+Bostree
+summary(Bostree)
+```
+
+```{r visualize_tree, fig.height=5.5}
+plot(Bostree)
+text(Bostree, pretty=0)
+```
+
+```{r CVtree_arg}
+str(cv.tree)
+```
+
+```{r CV, fig.width=4.5, fig.height=4.5}
+cv.result <- cv.tree(Bostree)
+plot(cv.result$size, cv.result$dev, type="b",
+     main="Result of cross validation",
+     xlab="Size", ylab="Deviance")
+```
+
+```{r prune, fig.width=4.5, fig.height=4.5}
+fit <- prune.tree(Bostree, best=4)
+plot(fit)
+text(fit, pretty=0)
+```
+
+```{r prediction, fig.width=4.5, fig.height=4.5}
+test.y <- Boston$medv[-train]
+test.x <- Boston[-train, ]
+predict.y <- predict(fit, newdata=test.x)
+plot(test.y, predict.y)
+abline(0, 1)
+mean((test.y - predict.y)^2)
+```
+# Classification
+```{r error_rate}
+misclass <- function(x){
+  min(x, 1 - x)
+}
+gini <- function(x){
+  2*x*(1 - x)
+}
+entropy <- function(x){
+  -x*log(x)
+}
+
+p <- seq(0, 1, by=0.01)
+plot(p, sapply(p, misclass), lwd=2, type="l",
+     main="Comparison",
+     xlab="Proportion in Class 1", ylab="Disorder")
+lines(p, gini(p), col="red", lwd=2)
+lines(p, entropy(p), col="blue", lwd=2)
+```
+
+```{r data2}
+data(Carseats)
+str(Carseats)
+High <- ifelse(Carseats$Sales <= 8, "No", "Yes")
+Carseats <- data.frame(Carseats, High)
+```
+
+```{r tree}
+Cartree <- tree(High ~ . - Sales, data=Carseats)
+summary(Cartree)
+```
+
+```{r, fig.width=7, fig.height=8}
+plot(Cartree)
+text(Cartree, pretty=0)
+```
+
+```{r train}
+set.seed(1)
+train <- sample(1:nrow(Carseats), nrow(Carseats)/2)
+Cartree <- tree(High ~ . - Sales, data=Carseats, subset=train)
+cv.result2 <- cv.tree(Cartree, FUN=prune.misclass)
+```
+
+```{r CV2, fig.width=4.5, fig.height=4.5}
+plot(cv.result2$size, cv.result2$dev, type="b",
+     main="Result of cross validation",
+     xlab="Size", ylab="Deviance")
+```
+
+```{r prune_tree}
+fit2 <- prune.misclass(Cartree, best=4)
+plot(fit2)
+text(fit2, pretty=0)
+```
+
+```{r prediciton2}
+test.y <- High[-train]
+test.x <- Carseats[-train, ]
+predict.y <- predict(fit2, newdata=test.x, type="class")
+table(Prediction=predict.y, True=test.y)
+```
+
