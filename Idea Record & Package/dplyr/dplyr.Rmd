@@ -1,0 +1,317 @@
+---
+title: "R package dplyr, Data Manipulation"
+author: "Jason Wang"
+date: "Tuesday, April 28, 2015"
+output:
+  pdf_document:
+    latex_engine: xelatex
+mainfont: Calibri
+fontsize: 12pt
+---
+This is an introduction to th `R` package `dplyr`. If you type the "dplyr" in google or youtube, you will get tremendous references, tutorials and examples. It is written in C, which mean that it will translate your R code into C and the manipulating functions are really fast. Its function and structure are like those we use in database language. Mainly, it contains six verb functions, `filter`, `select`, `arrange`, `mutate`, `summarise`, `group_by` and also some more advanced function.
+
+```{r, message=FALSE}
+library(dplyr)
+#Package which I use its data to demonstrate.
+library(hflights)
+```
+
+```{r}
+data(hflights)
+dim(hflights)
+names(hflights)
+```
+
+```{r, results='hide'}
+head(hflights)
+```
+If you run the head code, the output is not really good for people to understand. I am not going to show the output here. 
+
+\newpage
+
+# 1. Data Type: tbl
+
+First of all, we have to transfrom the our data into the table, local data frame. (Note that originally it is a data frame.)
+```{r}
+#Transform data.frame to table
+hflights <- tbl_df(hflights)
+```
+Normally, if you print out the data which have `r dim(hflights)[1]` rows and `r dim(hflights)[2]`columns, you will get a messy output. However, when the data is table, then we can print it without any worry. It will automatically adapt the data output to us.
+```{r}
+#Nicer output compared with the originally one
+hflights
+```
+In the beginning, it shows you the dimension of the data. In the middle, it gives you an appropriate output which fit the windows. In the end, it tells you what variables do not show.
+
+\newpage
+
+# 2. Verb 1 filter (Row)
+
+Usually, when we first get the data, we will explore it in a different way. We may thinks that maybe certain group in the data will have the same patterns. We want to find out those subjects (row) which have the same features in certain variable. Then, we can utilize the `filter` function to help us.
+
+For instance, you may want to get those airflight in January. In `dplyr`, it is really easy.
+```{r}
+#In dplyr
+filter(hflights, Month == 1)
+```
+As you can see, it will show you a nicely format. You can know how many flights are in Janauary. In normal R codes, you may have to write some codes like `hflights[hflights$Month == 1, ]`.
+
+You can save it into another table such as Jan. It will keep the same data type. Also, you can transform it back to data.frame without any warning message.
+```{r}
+Jan <- filter(hflights, Month == 1)
+class(Jan)
+#You can also get the data as the way for data frame
+Jan[1, 1]
+
+Jan <- data.frame(Jan)
+class(Jan)
+```
+If you have multiple condition, you can use AND(&) as well as OR(|) in the function.
+```{r}
+filter(hflights, Month == 1 & DayofMonth == 1)
+#You can also replace AND by ,
+filter(hflights, Month == 1, DayofMonth == 1)
+```
+You can also filter by character.
+```{r}
+filter(hflights, UniqueCarrier == "AA")
+```
+\newpage
+
+# 3. Verb 2 select (Column)
+
+You might also want to examine some column in the data. In R, you may use the code like `hflights[, c("Month", "DayofMonth", "FlightNum")]`.
+```{r}
+#In dplyr
+select(hflights, Month, DayofMonth, FlightNum)
+```
+
+```{r}
+#You can also use contain function to select the column which have the same keyword
+select(hflights, contains("delay"))
+```
+
+```{r}
+#Or use starts_with
+select(hflights, starts_with("M"))
+#Or use ends_with
+select(hflights, ends_with("th"))
+```
+\newpage
+
+#Digression about a nicer way to write codes in dplyr
+
+Sometimes we will combine the `filter` and `select` function together. For example, you may want to find out the FlightNum and Origin of those filghts which their UniqueCarrier are WN. You will write a code like the following:
+```{r}
+filter(select(hflights, FlightNum, Origin, UniqueCarrier), UniqueCarrier == "WN")
+```
+When you see the above codes, it may take some times to really get what the codes is doing. However, in `dplyr`, it gives user a more generally way to organize their code called "**chaining**" which can give a more readable code.
+```{r}
+#Another much more easier way to write code
+hflights %>%
+    select(FlightNum, Origin, UniqueCarrier) %>%
+    filter(UniqueCarrier == "WN")
+```
+You can regard the %>% syntax as "then". It will be like that get the hflights data, then select FlightNum, Origin, UniqueCarrier, then filter the outcome to find those UniqueCarrier is "WN". It is much more interpretable way to present the code to others. Actually, the syntax exists in the R code and we can utilize it in other code too.
+
+```{r}
+x <- rnorm(2)
+y <- rnorm(2)
+#Distance
+sqrt(sum((x - y)^2))
+```
+
+```{r}
+#In %>% way
+(x - y)^2 %>% sum %>% sqrt
+```
+
+# 4. Verb 3 arrange
+
+Usually, we want to sort data and see whether overall data shows pattern after sorting. We can use `hflights[order(hflights$DepTime), c("Month", "DepTime", "ArrTime")]`
+```{r}
+#In dplyr
+arrange(select(hflights, Month, DepTime, ArrTime), DepTime)
+```
+
+```{r}
+#Chaining
+hflights %>%
+  select(Month, DepTime, ArrTime) %>%
+  arrange(DepTime)
+```
+
+```{r}
+#In decreasing way
+hflights %>%
+  select(Month, DepTime, ArrTime) %>%
+  arrange(desc(DepTime))
+```
+
+# 5. Verb 4 mutate
+
+Sometimes, you may want to add or create a new variable into data. For example, if we want to add `speed`, we use `hflights$speed <- hflights$Distance/hflights$AirTime`.
+```{r}
+#In dplyr
+hflights %>%
+  select(Distance, AirTime) %>%
+  mutate(Speed=Distance/AirTime)
+
+#To store
+hflights <- mutate(hflights, Speed=Distance/AirTime)
+select(hflights, Distance, AirTime, Speed)
+```
+
+# 6. Verb 5 summarise + Verb 6 group_by
+
+When it comes to descriptive statistics, we will want to statistics based on several group if we have multiple group. For example, if we want to know the average arrival delay time for different destination, then we run `head(tapply(hflights$ArrDelay, hflights$Dest, mean, na.rm=T)) or head(aggregate(ArrDelay ~ Dest, hflights, mean))`.
+```{r}
+#In dplyr
+summarise(group_by(hflights, Dest), mean(ArrDelay, na.rm=T))
+
+#Chaining
+hflights %>%
+  group_by(Dest) %>%
+  summarise(delay_Time=mean(ArrDelay, na.rm=T))
+```
+Sometimes, we may want to apply the function to several columns or apply different functions to column.
+```{r}
+#Apply function to multiple columns
+hflights %>%
+  group_by(UniqueCarrier) %>%
+  summarise_each(funs(mean(., na.rm=T)), Cancelled, Diverted)
+```
+
+```{r}
+#Apply multiple functions to one column
+hflights %>%
+  group_by(Dest) %>%
+  summarise_each(funs(mean(., na.rm=T), min(., na.rm=T), max(., na.rm=T)), ArrDelay)
+```
+
+```{r}
+#Apply multiple functions to several columns
+hflights %>%
+  group_by(UniqueCarrier) %>%
+  summarise_each(funs(min(., na.rm=T), max(., na.rm=T)), contains("Delay"))
+```
+
+# 7. n() and n_distinct
+
+Here we introduce a useful functions that can facilitate our analysis. The first one is ` n()`. It can help us count the number in the group(category) and perhaps we want to sort them by the its numbers. For example, we may want to know what's the rush month or day for airline. We can count the number by these two category and sort them to find out the results. 
+```{r}
+#In dplyr
+hflights %>%
+  group_by(Month, DayofMonth) %>%
+  summarise(flight_count=n()) %>%
+  ungroup() %>%
+  arrange(desc(flight_count))
+```
+
+```{r}
+#Another easier way to write it
+hflights %>%
+  group_by(Month, DayofMonth) %>%
+  tally(sort=T)
+```
+`n_distinct` funtion provide the number of unique subject in certain column you assign.
+```{r}
+hflights %>%
+  group_by(Dest) %>%
+  summarise(flight_count=n(), plane_count=n_distinct(TailNum))
+```
+Sometimes, `group_by` can be very useful even without `summarise`.
+```{r}
+hflights %>%
+  group_by(Dest) %>%
+  select(Cancelled) %>%
+  table() %>%
+  head()
+```
+
+# 8. Windows function
+
+* Aggregate function: Input n values, output 1 value
+
+*Windows function: Input n values, output n values
+```{r}
+#For each destination, calculate which two days of the year they had their longest departure delays
+#We use desc(DepDelay) because I want to find the largest value of DepDelay.
+hflights %>%
+  group_by(Dest) %>%
+  select(Month, DayofMonth, DepDelay) %>%
+  filter(min_rank(desc(DepDelay)) <= 2) %>%
+  arrange(Dest, desc(DepDelay)) %>%
+  print(n=15)
+```
+* top_n
+```{r}
+#top_n
+hflights %>%
+    group_by(Dest) %>%
+    select(Month, DayofMonth, DepDelay) %>%
+    top_n(2) %>%
+    arrange(Dest, desc(DepDelay))
+```
+
+```{r}
+#Compute the change from month to month
+hflights %>%
+  group_by(Month) %>%
+  summarise(flight_count=n()) %>%
+  mutate(change=flight_count-lag(flight_count))
+```
+
+```{r}
+#By tally function
+hflights %>%
+    group_by(Month) %>%
+    tally() %>%
+    mutate(change=n - lag(n))
+```
+# 9. Others
+
+We can also do sampling easily.
+```{r}
+#In dplyr
+hflights %>% sample_n(10)
+```
+
+```{r}
+#Or by fraction
+hflights %>% sample_frac(0.25, replace=T)
+```
+
+```{r}
+#Like the str function in base R
+glimpse(hflights)
+```
+
+# 10. Connecting with database
+
+* dplyr can connect to a database as if the data was loaded into a data frame
+* [Instruction for create a database](dplyr can connect to a database as if the data was loaded into a data frame)
+```{r, eval=FALSE}
+# connect to an SQLite database 
+my_db <- src_sqlite("my_db.sqlite3")
+
+# connect to the "hflights" table in that database
+flights_tbl <- tbl(my_db, "hflights")
+
+# identical query using the database
+flights_tbl %>%
+    select(UniqueCarrier, DepDelay) %>%
+    arrange(desc(DepDelay))
+
+# ask dplyr for the SQL commands
+flights_tbl %>%
+    select(UniqueCarrier, DepDelay) %>%
+    arrange(desc(DepDelay)) %>%
+    explain()
+```
+
+# References
+
+* [Hands-on dplyr tutorial for faster data manipulation in R](http://www.r-bloggers.com/hands-on-dplyr-tutorial-for-faster-data-manipulation-in-r/)
+
+* [A more comprehensive and advanced tutorial](http://rpubs.com/justmarkham/dplyr-tutorial)

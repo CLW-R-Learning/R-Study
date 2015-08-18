@@ -1,0 +1,144 @@
+---
+title: "ggplot2"
+author: "Jason"
+date: "Monday, May 25, 2015"
+output:
+  html_document: 
+    keep_md: yes
+  pdf_document:
+    fig_height: 4
+    fig_width: 4
+    latex_engine: xelatex
+mainfont: Calibri
+---
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(comment="")
+```
+
+http://zevross.com/blog/2014/08/04/beautiful-plotting-in-r-a-ggplot2-cheatsheet-3/
+For `ggplot`, `gg` is `Grammar of Graphics`. Think Verb, Noun, adjective for graphics. Plots are made up of *aesthetics* (size, shap, color) and *geoms* (points, lines) 
+
+```{r}
+library(ggplot2)
+
+#Demo data
+data(mtcars)
+str(mtcars)
+```
+
+\newpage
+
+#1. Basic function qplot
+```{r, fig.align='center'}
+#Fundamental
+qplot(hp, mpg, data=mtcars)
+```
+
+```{r, fig.align='center', fig.width=5}
+#Add color
+#Type 1
+qplot(hp, mpg, data=mtcars, color=am)
+```
+
+```{r, fig.align='center', fig.width=5}
+#Type 2
+qplot(hp, mpg, data=mtcars, color=as.factor(am))
+```
+
+```{r, fig.align='center', fig.width=5}
+#Change shape
+qplot(hp, mpg, data=mtcars, shape=as.factor(am))
+```
+
+```{r, fig.align='center'}
+#Add geoms
+qplot(hp, mpg, data=mtcars, geom=c("point", "smooth"), method="lm")
+```
+
+```{r, fig.align='center', fig.width=5}
+#Histogram
+qplot(mpg, data=mtcars, fill=as.factor(am), binwidth=2)
+```
+
+```{r, fig.align='center'}
+#Facets
+qplot(hp, mpg, data=mtcars, facets=. ~ am)
+```
+
+```{r, fig.align='center'}
+#Facets
+qplot(mpg, data=mtcars, facets=am ~ ., binwidth=2)
+```
+
+```{r, fig.align='center', fig.width=5}
+#Density Smooth
+qplot(mpg, data=mtcars, geom="density")
+qplot(mpg, data=mtcars, geom="density", color=as.factor(am))
+```
+
+The qplot is quite similar to the plot in base R. In the following, we will introduce the ggplot function to make a more well-structrue and beautiful plot.
+```{r, message=FALSE}
+library(dplyr)
+
+mtcars <- mtcars %>%
+            mutate(cyl=as.factor(cyl)) %>%
+            mutate(vs=as.factor(vs)) %>%
+            mutate(am=as.factor(am))
+str(mtcars)
+```
+
+# Scatter plot
+```{r, fig.align='center'}
+ggplot(mtcars) + geom_point(aes(x=hp, y=mpg))
+```
+
+```{r}
+#Color by am
+ggplot(mtcars) + geom_point(aes(x=hp, y=mpg, color=am))
+```
+
+```{r}
+#Color by am and add trend line
+ggplot(mtcars) + geom_point(aes(x=hp, y=mpg, color=am)) +
+  geom_smooth(aes(x=hp, y=mpg, color=am), method="lm")
+```
+
+```{r}
+#Divide into two facet
+ggplot(mtcars) + geom_point(aes(x=hp, y=mpg, color=am)) +
+  facet_grid(. ~ am) + geom_smooth(aes(x=hp, y=mpg, color=am), method="lm")
+```
+
+# Histogram
+```{r}
+ggplot(mtcars) + geom_histogram(aes(x=hp), binwidth=5)
+```
+
+```{r}
+ggplot(mtcars) + geom_histogram(aes(x=hp, fill=am), binwidth=5, position="dodge")
+```
+
+```{r}
+#Divide into two part
+ggplot(mtcars) + geom_histogram(aes(x=hp, y=..density.., fill=am), binwidth=5, position="dodge") +
+  facet_grid(am ~ .)
+```
+# Density plot
+```{r}
+ggplot(mtcars) + geom_density(aes(x=hp, fill=am)) +
+  facet_grid(am ~ .)
+```
+# Density + histogram
+```{r}
+ggplot(mtcars) + geom_histogram(aes(x=hp, y=..density.., fill=am), binwidth=5) + 
+  geom_density(aes(x=hp, color=am)) +
+  facet_grid(am ~ .)
+```
+
+** Reference **
+
+1. [ggplot themes](http://docs.ggplot2.org/0.9.2.1/theme.html)
+
+2. [basic Intro to qplot](http://www.r-bloggers.com/basic-introduction-to-ggplot2/)
+
+3. [Cheatsheet for Visualizing Distributions](http://www.r-bloggers.com/ggplot2-cheatsheet-for-visualizing-distributions/)
