@@ -1,0 +1,171 @@
+---
+title: "Principal Component Analysis"
+author: "Jason"
+date: "2015/07/03"
+output:
+  html_document:
+    fig_height: 5
+    keep_md: yes
+  pdf_document:
+    latex_engine: xelatex
+---
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(comment="")
+knitr::opts_chunk$set(fig.align='center')
+```
+
+```{r package}
+#Package
+library(ISLR); library(ggplot2); library(GGally)
+```
+
+```{r data}
+arrest <- USArrests
+summary(arrest)
+```
+
+```{r EDA}
+#The function is built in GGally
+ggpairs(arrest, title="Pair plot of all variable")
+```
+
+# Step of Calculating PCA   
+1. Scale the data
+```{r scale}
+scale_arrest <- scale(arrest)
+```
+2. Get the covariance matrix
+```{r covariance}
+cov_arrest <- cov(scale_arrest)
+cov_arrest
+```
+3. Calculate eigenvalues and eigenvectors
+```{r eigen}
+eigen_arrest <- eigen(cov_arrest)
+eigen_arrest
+```
+4. Derive the new data (scores)
+
+Final Data=Row Feature Vector X Row Data Adjust
+```{r scores}
+scores <- t(t(eigen_arrest$vectors) %*% t(scale_arrest))
+
+head(scores)
+```
+\newpage
+
+5. Choose the number of Component
+
+a. Proportion of variance
+
+Random vector 
+\begin{displaymath}
+\mathbf{X} = \begin{bmatrix}
+- X_{1} -\\ 
+- X_{2} -\\ 
+\cdots \\ 
+- X_{n} -\\
+\end{bmatrix}
+\end{displaymath}
+$$Cov(a'X)=a'Cov(X)a$$
+$\phi_{1}$ is the first eigenvector
+$$Var(\phi_{1}'X)=\phi_{1}'Var\phi_{1}=\phi_{1}'\lambda_{1}\phi_{1}=\lambda_{1}\phi_{1}'\phi_{1}=\lambda_{1}$$
+```{r show}
+t(eigen_arrest$vectors[, 1]) %*% var(scale_arrest) %*% eigen_arrest$vectors[, 1]
+```
+
+```{r show2}
+eigen_arrest$values[1]
+```
+After the project the original data to the component one. We can explained the origianl variation by eigenvalue1, $\lambda_{1}$. Hence, we can use the eigenvalue to see how much variation the component explain.
+```{r eigen_way}
+#Way1
+eigen_value <- eigen_arrest$values
+m <- data.frame(PC=1:4, PV=cumsum(eigen_value)/sum(eigen_value))
+
+#plot
+ggplot(m) + geom_line(aes(x=PC, y=PV), size=1, color="dodgerblue") +
+  labs(title="Explained Proportion", x="# of Principal Component", y="Proportion of Variane") +
+  theme_bw()
+```
+
+```{r score_variance}
+#Way2
+PV_each <- apply(scores^2, 2, sum)/sum(scale_arrest^2)
+PV <- cumsum(PV_each)
+m <- data.frame(PC=1:4, PV=PV)
+
+#plot
+ggplot(m) + geom_line(aes(x=PC, y=PV), size=1, color="dodgerblue") +
+  labs(title="Explained Proportion", x="# of Principal Component", y="Proportion of Variane") +
+  theme_bw()
+```
+
+b. Scree plot
+```{r scree_plot}
+eigen_value <- eigen_arrest$values
+data <- data.frame(Principal_component=1:4, eigenvalue=eigen_value)
+#plot
+ggplot(data) + geom_line(aes(x=Principal_component, y=eigen_value), size=1, color="dodgerblue") +
+  labs(title="Scree plot", x="Principal Component", y="Eigen vlaue") +
+  theme_bw() + geom_hline(yintercept=1, linetype=2, color="red")
+```
+
+# Default function
+
+There are two default functions to do Principal Component Analysis in R, which is `princomp` and `prcomp`. In the following discussion, we will split them into different section and compare their difference.   
+
+
+# princomp
+```{r PCA1}
+pca1 <- princomp(scale_arrest)
+```
+
+```{r summary1}
+summary(pca1)
+```
+
+```{r eigen_value}
+#eigen value
+pca1$sdev^2
+```
+
+```{r}
+#loading
+pca1$loadings
+```
+
+```{r}
+#Score
+head(summary(pca1)$score)
+```
+
+```{r biplot, fig.width=8, fig.height=7}
+biplot(pca1)
+```
+
+# prcomp
+```{r PCA2}
+pca2 <- prcomp(scale_arrest)
+```
+
+```{r summary2}
+summary(pca2)
+```
+
+```{r eigen_vlaue2}
+pca2$sdev^2
+```
+
+```{r}
+#loading
+pca2$rotation
+```
+
+```{r}
+#Score
+head(scale_arrest %*% pca2$rotation)
+```
+
+Reference
+* [Elementary Matrix Algebra Review](http://courses.washington.edu/b533/lect3.pdf)
