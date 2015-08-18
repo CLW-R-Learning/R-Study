@@ -1,0 +1,159 @@
+---
+title: "Clustering Analysis"
+author: "Jason"
+date: "2015年7月7日"
+output: 
+  html_document: 
+    keep_md: yes
+---
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(comment="")
+knitr::opts_chunk$set(fig.align='center')
+```
+
+```{r package, message=FALSE}
+library(ggplot2); library(dplyr); library(gridExtra); library(ggdendro)
+```
+
+# K-means
+
+```{r Simulated_data_EDA, fig.width=10}
+set.seed(1)
+Var1 <- c(rnorm(25, mean=-3), rnorm(25), rnorm(25, mean=3))
+Var2 <- c(rnorm(25, mean=3), rnorm(25), rnorm(25, mean=3))
+Group <- gl(3, 25)
+m <- data.frame(Var1, Var2, Group)
+
+#plot
+g1 <- ggplot(m) + geom_point(aes(x=Var1, y=Var2)) +
+  labs(title="What we see")
+g2 <- ggplot(m) + geom_point(aes(x=Var1, y=Var2, color=Group)) +
+  labs(title="What we don't know")
+#Funcation in gridExtra
+grid.arrange(g1, g2, ncol=2)
+```
+Step1. Initialize the cluster
+```{r initialize}
+#Split the data
+data <- data.frame(m[, 1:2], index_Ck=as.factor(sample(1:3, size=75, replace=T)))
+```
+Step2a. Calculate the cluster mean
+```{r calculate_mean}
+mean_Ck <- data %>%
+            group_by(index_Ck) %>%
+            summarise(Var1=mean(Var1), Var2=mean(Var2)) %>%
+            select(Var1, Var2)
+mean_Ck
+```
+Step2b. Rearrange the group
+```{r rearrange_group}
+distance <- function(x, group){
+  sum((x - mean_Ck[group, ])^2)
+}
+
+distance_matrix <- cbind(apply(data[, 1:2], 1, distance, group=1), 
+                         apply(data[, 1:2], 1, distance, group=2),
+                         apply(data[, 1:2], 1, distance, group=3))
+data$index_Ck <- as.factor(apply(distance_matrix, 1, which.min))
+```
+
+```{r plot}
+ggplot(data) + geom_point(aes(x=Var1, y=Var2, color=index_Ck)) +
+  labs(title="Iteration 1")
+```
+
+```{r withinvar}
+#Within Cluster Variation
+tapply(apply(distance_matrix, 1, min), data$index_Ck, sum)
+```
+Another way for kmeans
+```{r way2}
+data <- data.frame(m[, 1:2], cluster=rep(0))
+initial <- sample(dim(data)[1], 3)
+#set cluster
+data[initial, 3] <- 1:3
+#intial mean
+mu <- data[initial, -3]
+
+ggplot(data) + geom_point(aes(x=Var1, y=Var2, color=as.factor(cluster))) + labs(title="Initial")
+```
+
+```{r rearrange}
+#Calculate the distance matrix
+distance_matrix <- matrix(0, nrow=75, ncol=3)
+for(i in 1:75){
+  for(j in 1:3){
+    distance_matrix[i, j] <- sum((data[i, -3] - mu[j, ])^2)
+  }
+}
+#Find the cluster and update the cluster
+data$cluster <- as.factor(apply(distance_matrix, 1, which.min))
+```
+
+```{r way2_plot}
+ggplot(data) + geom_point(aes(x=Var1, y=Var2, color=cluster)) +
+  labs(title="Iteration 1")
+```
+
+```{r way2_withinvar}
+#Within Cluster Variation
+tapply(apply(distance_matrix, 1, min), data$cluster, sum)
+```
+
+# kmeans
+```{r kmeans}
+km <- kmeans(data, centers=3)
+```
+
+```{r result}
+m_km <- data.frame(m, Cluster=as.factor(km$cluster))
+
+g3 <- ggplot(m_km) + geom_point(aes(x=Var1, y=Var2, color=Cluster)) +
+  labs(title="Kmeans cluster")
+g3
+```
+
+```{r withinss}
+km$withinss
+```
+
+# Hierarchical Clustering
+```{r data}
+data <- m[, 1:2]
+```
+
+```{r hclust, fig.width=8, fig.height=7}
+hc.avg <- hclust(dist(data[, -3]), method="average")
+hc.com <- hclust(dist(data[, -3]), method="complete")
+hc.sin <- hclust(dist(data[, -3]), method="single")
+```
+
+```{r hc_plot1, fig.height=7}
+plot(hc.avg, main="Average Linkage")
+abline(h=3.5, lty=2, col="red")
+```
+
+```{r cutree}
+cutree(hc.avg, 3.5)
+```
+
+```{r ggdendro}
+#ggdendro
+ggdendrogram(hc.avg)
+```
+
+```{r ggdendro1, fig.height=19.5}
+gg1 <- ggdendrogram(hc.avg) + labs(title="Average Linkage")
+gg2 <- ggdendrogram(hc.com) + labs(title="Complete Linkage")
+gg3 <- ggdendrogram(hc.sin) + labs(title="Single Linkage")
+grid.arrange(gg1, gg2, gg3, ncol=1)
+```
+
+```{r ggdendro2, fig.height=6.5}
+ggdendrogram(hc.avg, rotate=TRUE)
+```
+
+
+# Reference
+
+* [Using the ggdendro package for plotting dendrograms](http://cran.r-project.org/web/packages/ggdendro/vignettes/ggdendro.html)
