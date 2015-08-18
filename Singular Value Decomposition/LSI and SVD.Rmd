@@ -1,0 +1,511 @@
+---
+title: "SVD used in LSI"
+author: Oracle Li
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+潛在語義分析（Latent Semantic Analysis），是語義學的一個新的分支。
+傳統的語義學通常研究字、詞的含義以及詞與詞之間的關係，如同義，近義，反義等等。
+潛在語義分析探討的是隱藏在字詞背後的某種關係，以字詞的使用環境作為最基本的參考。
+人們找到了一種簡單的數學模型，這種模型的輸入是由任何一種語言書寫的文獻構成的文庫，輸出是該語言的字、詞的一種數學表達（向量）。字、詞之間的關係乃至任何文章片斷之間的含義的比較就由這種向量之間的運算產生。
+
+潛在語義學的觀念也被應用在資訊檢索上，所以有時潛在語義學也被稱為隱含語義索引（Latent Semantic Indexing，LSI）。
+
+
+隱含語義索引 (latent semantic indexing)，簡稱 LSI，目的是探討隱藏在字詞背後的某種關係，參考字詞的使用環境。
+LSI 的運作理論建基於奇異值分解，也就是以向量空間為分析模型，利用基底來呈現語料庫中不同字詞以及文件之間的關係。
+
+##1.preprocess the data
+Load in data searched "R" and "Bayesian" from NCCU library,which contained 101 books as our data for analysis.
+
+The chararcters starting with "%T" is books names in the same row, after "/" is auther names
+```{r}
+lib=read.csv("C:\\Users\\Gene\\Desktop\\Library\\lib.csv",header=F,colClasses="character")
+head(lib)
+```
+
+```{r, echo=FALSE}
+##aa is the number of book name row 
+aa=which(substr(lib[,1],start=1,stop=2)=="%T")
+
+```
+
+Delete the unknown book name
+
+```{r, echo=FALSE}
+lib[aa[42],]
+```
+
+```{r, echo=FALSE}
+aa=aa[-42]
+##substitle all the books names for the books row number
+aa=lib[aa,]
+##and turn all of the word to lower
+aa=tolower(aa)
+```
+
+take out the book names row
+```{r, echo=FALSE}
+head(aa,3)
+```
+
+
+```{r,echo=FALSE, warning=FALSE}
+##find out where is "/" in order to spilt books names and auther names
+bb=strsplit(aa,split="") 
+##k is the order of "/"
+k=c()
+for(i in 1:length(aa)){
+      k=c(k,which(bb[[i]]=="/"))
+}
+##62 and 63 have no auther, therefore no "/"
+k=c(k[1:61],150,150,k[62:98])
+##split aa and store books names in splib
+splib=c()
+for(i in 1:length(aa)){
+      splib[i]=substr(aa[i],start=4,stop=k[i]-2)
+      
+}
+```
+
+split out the books names
+```{r ,echo=FALSE, warning=FALSE}
+head(splib,3)
+```
+
+
+```{r, echo=FALSE}
+##split into seperate words
+word=strsplit(splib,split=" ") 
+##nam is all words
+nam=names(table(unlist(word)))
+##cut some meaningless words
+```
+delete some meaningless words
+```{r}
+nam[c(1:11,15,19,45,72,86,110,132,160,163,164,191,199,240,244,248,258,263)]
+```
+
+```{r,echo=FALSE, warning=FALSE}
+nam=nam[-c(1:11,15,19,45,72,86,110,132,160,163,164,191,199,240,244,248,258,263)]
+##wow
+##100column are books
+##235row are vocabularies
+wow=matrix(0,ncol=235,nrow=100)
+wow=as.data.frame(wow)
+for(i in 1:100){
+      for(j in 1:235){
+            for(k in 1:length(word[[i]])){
+                  if(word[[i]][k]==nam[j]){
+                        wow[i,j]=1
+                  }
+            }
+      }
+      
+}
+wow=t(wow)
+row.names(wow)=nam
+names(wow)=1:100
+```
+
+wow is a 235x100 matrix,whose rows are vocabularies and columns are books called term-document matrix
+```{r}
+wow[1:10,1:10]
+```
+
+
+##2.singular value decomposition 
+##(1) explanation
+##a.
+對應第j個奇異值，uj稱為左奇異向量，vj稱為右奇異向量
+
+t(wow) * wow * vj= dj^2 * vj 
+
+wow * t(wow) * uj= dj^2 * uj
+
+##b.
+
+rank(wow)=r
+
+wow=d1 * u1 * t(v1) + d2 * u2 * t(v2) + … + dr * ur * t(vr)
+
+上式uj和vj是U和V的行向量
+
+##c. do SVD
+```{r}
+wowow=svd(wow)
+names(wowow)
+```
+
+```{r,echo=FALSE, warning=FALSE}
+##smaller than 10^-5 <- 0
+#d
+wowow$d[which(wowow$d<10^-5)]=0
+#v
+for (i in 1:100){
+      for(j in 1:100){
+            if(abs(wowow$v[i,j])<10^-5){
+                  wowow$v[i,j]=0
+            }
+      }
+}
+#u
+for (i in 1:235){
+      for(j in 1:100){
+            if(abs(wowow$u[i,j])<10^-5){
+                  wowow$u[i,j]=0
+            }
+      }
+}
+
+
+##取名字 u的列為單字
+row.names(wowow$u)=nam
+
+##v的列名為書目 t(v)的行就是書目
+row.names(wowow$v)=paste("book",1:100,sep="")
+```
+
+##(2) sigular value(奇異值) 
+由大到小排列的100個奇異值 100x100 diagnol matrix
+```{r}
+head(wowow$d)
+```
+##(3) term-concept matrix(字詞—概念矩陣)
+U的行向量構成一正交正規向量集合，故可作為"字詞空間的基底"  235x100  matrix
+```{r}
+wowow$u[1:5,1:5]
+```
+##(4) concept-documenr matrix(概念—文件矩陣) 
+V 的行向量也構成一正交正規向量集合，可作為"文件空間的基底" 100x100 matrix
+```{r}
+wowow$v[1:5,1:5]
+```
+
+U的行為term vectors 
+
+V的行為document vectors
+
+##3.some easy visualization
+##(1) 2 Dimension(ggplot)
+
+plot 2D of Term Vectors(U)
+
+```{r,echo=FALSE, warning=FALSE}
+library("grid")
+library("ggplot2")
+##二維(前兩個)
+u=wowow$u[,1:2]
+d=diag(wowow$d[1:2])
+v=t(wowow$v[,1:2])
+u=u %*% d
+v=d %*% v
+##Term Vectors
+ggplot(as.data.frame(u)) +
+      theme_bw() +
+      labs(title="Term Vectors", 
+           x="Dimension1", 
+           y="Dimension2",size=4) +
+      geom_point(shape=19,size=4,aes(x=u[,1], y=u[,2]))+
+      theme(axis.text=element_text(size=20),
+            axis.title=element_text(size=28,face="bold"),
+            plot.title = element_text(size =40)) +
+      geom_text(aes(x=u[,1], y=u[,2]),label=rownames(u),size=3,
+                vjust=3) +
+
+      geom_segment(mapping=aes(x =rep(0,235), y=rep(0,235),xend = u[,1],
+                               yend = u[,2]),linetype="dashed",
+                   arrow=arrow(), size=0.5, color="blue")+
+      geom_point(shape=19,size=4,aes(x=0, y=0),col="red")
+      
+```
+
+plot 2D of Document Vectors(v)
+
+```{r,echo=FALSE, warning=FALSE}
+
+##Document Vectors
+ggplot(as.data.frame(v)) +
+      theme_bw() +
+      labs(title="Document Vectors", 
+           x="Dimension1", 
+           y="Dimension2",size=4) +
+      geom_point(shape=19,size=4,aes(x=v[1,], y=v[2,]))+
+      theme(axis.text=element_text(size=20),
+            axis.title=element_text(size=28,face="bold"),
+            plot.title = element_text(size =40)) +
+      geom_text(aes(x=v[1,], y=v[2,]),label=1:100,size=3,
+                vjust=3) +
+      geom_segment(mapping=aes(x =rep(0,100), y=rep(0,100),xend = v[1,],
+                               yend = v[2,]),linetype="dashed",
+                   arrow=arrow(), size=0.5, color="blue")+
+      geom_point(shape=19,size=4,aes(x=0, y=0),col="red")
+```
+
+
+##(2) 3 Dimension (scatterplot3d)
+
+plot 3D of Term Vectors(U)
+
+```{r,echo=FALSE, warning=FALSE}
+library(scatterplot3d)
+###3d
+u=wowow$u[,1:3]
+d=diag(wowow$d[1:3])
+v=t(wowow$v[,1:3])
+u=u %*% d
+v=d %*% v
+
+s3d <- scatterplot3d(u[,1],u[,2],u[,3],pch=16,
+                     main="Term Vectors", 
+                     xlab="Dimension1", ylab="Dimension2",zlab="Dimension3")
+s3d.coords <- s3d$xyz.convert(u[,1],u[,2],u[,3]) 
+s3d.points <- s3d$xyz.convert(0,0,0) 
+text(s3d.coords$x, s3d.coords$y,labels=rownames(u),cex=.5, pos=4)  
+arrows(s3d.points$x, s3d.points$y, s3d.coords$x, s3d.coords$y, 
+       lty=2, col="blue")
+points( s3d.points$x, s3d.points$y,col="red",cex=2,pch=16)
+```
+
+plot 3D of Document Vectors(v)
+
+```{r,echo=FALSE, warning=FALSE}
+
+s3d <- scatterplot3d(v[1,],v[2,],v[3,],pch=16,
+                     main="Document Vectors", 
+                     xlab="Dimension1", ylab="Dimension2",zlab="Dimension3")
+s3d.coords <- s3d$xyz.convert(v[1,],v[2,],v[3,]) 
+s3d.points <- s3d$xyz.convert(0,0,0) 
+text(s3d.coords$x, s3d.coords$y,labels=colnames(v),cex=.5, pos=4)  
+arrows(s3d.points$x, s3d.points$y, s3d.coords$x, s3d.coords$y, 
+       lty=2, col="blue")
+points( s3d.points$x, s3d.points$y,col="red",cex=2,pch=16)
+
+
+```
+
+
+```{r,echo=FALSE, warning=FALSE}
+######3D
+##三維(前三個)
+
+library(rgl)
+##書目的相似度
+windows()
+plot3d(v[1,],v[2,],v[3,],main="100 books",expand=1.6,col=c(rep(1,51),rep(2,49)))
+##black from R ， red from Bayesian
+text3d(v[1,],v[2,],v[3,],adj=1, texts=colnames(v))
+##單字的相似度
+windows()
+plot3d(u[,1],u[,2],u[,3])
+text3d(u[,1],u[,2],u[,3],adj=1,pos=1, texts=rownames(u))
+
+
+
+```
+
+##4. a pakage for LSA called lsa
+
+
+this package can do all the things above and below
+
+also can selected NO. Dimension ,textmatrix ,and query
+
+
+wow made before contain documents in colums, terms in rows 
+
+```{r,warning=FALSE, message=FALSE}
+library(lsa)
+hi=lsa(wow)  
+names(hi)   
+
+```
+
+"tk"  235*27
+
+"dk"  100*27
+
+"sk"   27*27
+
+M = T S t(D)
+
+
+拿之前的wowow來做 也可以算出27個維度
+```{r}
+dimcalc_share()(wowow$d)
+```
+
+
+so,we use 27D
+
+##5. Interpret
+##(1)function to caculate the angle of two vector
+```{r}
+angle <- function(x,y){
+      x=as.matrix(x)
+      y=as.matrix(y)
+      dot.prod <- t(x) %*% y
+      norm.x <- norm(x,type="2")
+      mat=dot.prod / norm.x 
+      theta <- sapply(mat,acos)
+      as.numeric(theta)
+}
+```
+##(2)字詞的相似度問題：字詞 ui列 和 uj列 有多相似？
+→算夾角
+statistics and methods 的夾角
+```{r}
+angle(hi$tk[202,],hi$tk[124,])
+```
+statistics and data 的夾角
+```{r}
+angle(hi$tk[202,],hi$tk[49,]) 
+```
+從圖看出statistics and methods 明顯比statistics and data近 夾角亦然
+
+
+算倆倆的距離
+```{r}
+www=matrix(0,ncol=235,nrow=235)
+for(i in 1:235){
+      for(j in i:235){
+            www[j,i]=angle(hi$tk[i,],hi$tk[j,])
+      }
+      www[i,i]=0
+}
+```
+最小夾角
+```{r}
+
+wwwnu=as.numeric(www)
+wwwnu=round(wwwnu,4)
+table(wwwnu)[2] 
+which(wwwnu==0.8381) 
+
+```
+359   =235*1  + 124
+
+8114  =235*34 + 124
+```{r}
+www[124,2]
+www[124,35]
+nam[c(2,35,124)] 
+```
+adaptive" "clinical" "methods" 此三詞最近? 何種擾動?
+
+
+##(3)文件的相似度問題：文件 vi列 和 vj列 有多相似？
+→算夾角
+
+2: growth curve analysis and visualization using r
+
+3: a primer in biological data analysis and visualization using r
+```{r}
+angle(hi$dk[2,],hi$dk[3,]) 
+```
+
+2: growth curve analysis and visualization using r
+
+51: innovation without r&d [electronic resource] : heterogeneous innovation patterns of non-r&d-performing firms in the german manufacturing industry
+
+```{r}
+angle(hi$dk[2,],hi$dk[51,]) 
+```
+
+##6.query
+文件查詢問題：給出若干查詢字詞，哪些是最相關聯的文件？
+
+
+Equation 1: AT = (U S VT)T = V S UT
+
+Equation 2: AT U S-1 = V S UT U S-1
+ 
+Equation 3: V[m,] = AT[m,] U S-1 
+
+For a given document vector d Equation 3 can be rewritten as
+
+Equation 4: d = AT[m,] U S-1    
+
+Since in LSI a query is treated just as another document then the query vector is given by
+
+Equation 5: q* = qT U S-1
+
+Thus, in the reduced k-dimensional space we can write
+
+##Equation 6: q* = qT Uk Sk-1
+
+qT is what we want to query
+
+q* can be seen as kind of document vector, so we caulate angle of q *  and all document vector  
+
+
+predict (new data)   (tk)    (sk-1)
+
+predict   1 * n      n * k    k * k
+
+
+
+##"An Introduction to Statistical Learning with Applications in R"
+
+將此document轉換成query形式
+```{r,results='hide',echo=FALSE}
+q=("An Introduction to Statistical Learning with Applications in R")
+q1=unlist(strsplit(q,split=" "))
+q1=tolower(q1)
+qn=c()
+for (i in 1:length(q1)){
+      xx=which(q1[i]==nam)
+      qn=c(qn,xx)
+}
+qu=matrix(0,ncol=235)
+##qu query matrix
+qu[,qn]=1
+colnames(qu)=nam
+```
+
+The query vector
+```{r}
+head(t(qu),10)
+```
+轉到參考基底
+
+query * 單字的基底 * 奇異值的倒數
+
+1 * 235   235 * 27     27 * 27       =1 * 27
+```{r}
+
+(que=qu %*% hi$tk %*% solve(diag(hi$sk)))
+```
+
+再計算que和 "dk"  100*27 100本書的夾角
+
+求出最小夾角
+
+#"bayesian item response modeling theory and applications"
+
+#"An Introduction to Statistical Learning with Applications in R" 
+
+
+```{r,warning=FALSE}
+all.angle=angle(t(que),t(hi$dk)) 
+m=which.min(all.angle)
+rbind(aa[m],q)
+```
+
+畫畫看，但是在前兩個維度很荒謬
+
+```{r ,echo=FALSE,warning=FALSE}
+plot(v[1,],v[2,],col="black",pch=16)
+text(v[1,],v[2,], pos=1,cex=0.6)
+arrows(0,0, v[1,],v[2,],  lty=2, col="blue")
+arrows(0,0, que[,1],que[,2],  lty=1, col="red",
+       angle = 10,cex=30)
+points(que[,1],que[,2],col="red",pch=16)
+
+```
+
+#terms too much
+
+
