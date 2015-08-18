@@ -1,0 +1,51 @@
+---
+title: "DIAGNOSIS"
+author: "HsuanU (Sanly)"
+output:
+  html_document:
+    keep_md: yes
+abstract: '20150708'
+---
+
+```{r, message=FALSE}
+#Test the assumption of error~iid N(0, var)
+#packages:
+library (lmtest) #for Durbin-Watson test 
+library(stats)   #for Bartlett test and Kolmogorov?VSmirnov test  
+library (lawstat)#for Levene test
+```
+
+```{r}
+samplex <- InsectSprays$spray #class
+sampley <- InsectSprays$count 
+lm1 <- lm (sampley~as.factor(samplex))
+```
+#Independence
+```{r}
+plot (lm1$residual~sampley, xlab="Observation", ylab="Residual") #I will try ggplot next time
+abline(h=0, lty=3, col="blue")
+
+dwtest (sampley~samplex)
+```
+#Constant variance
+```{r}
+#當資料分佈是常態時， Bartlett法是很好的方法，但是它對分佈型態很敏感。
+#依據 Conover etc. (1981), Levene檢定法不受限於資料之分佈，或許是較適當的方法。
+#這些檢定要求至少兩個y share同一個x值
+plot (lm1$residual~lm1$fitted.value, xlab="Fitted value", ylab="Residual")
+abline(h=0, lty=3, col="blue")
+
+#Maybe it is more proper to use a boxplot
+boxplot (lm1$residual~lm1$fitted.value, xlab="Fitted value", ylab="Residual")
+
+bartlett.test(sampley~samplex)
+
+levene.test (sampley, samplex, location="median", correction.method="zero.correction")
+```
+#Normality
+```{r}
+qqnorm (lm1$residual)
+qqline (lm1$residual, lty=3, col="blue")
+
+ks.test(samplex, sampley)
+```

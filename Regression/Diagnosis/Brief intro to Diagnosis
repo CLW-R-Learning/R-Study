@@ -1,0 +1,25 @@
+Diagnosis>> 
+Test the assumption of error~iid N(0, var)
+
+  獨立性independent
+plot (residual~observation)
+
+H0: Independence
+H1: Not H0
+by Durbin-Watson test 
+
+
+  變異數相等constant variance
+plot (residual~fitted value)
+
+H0: Constant variance
+H1: Not H0
+by Bartlett's test and Levene's test
+
+
+  常態normal
+Q-Q plot
+
+H0: Normaility 
+H1: Not H0
+by Kolmogorov–Smirnov test   
