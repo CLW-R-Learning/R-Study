@@ -1,0 +1,292 @@
+---
+title: "Taiwan Weighted Index Project"
+author: "Jason"
+date: "Monday, May 04, 2015"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+```{r}
+set.seed(123)
+```
+
+```{r}
+Taiwan <- read.csv("C:/Users/jason/Desktop/R/CLW_R_Learning/Jason Wang/Taiwan_weighted.csv")
+```
+
+```{r, message=FALSE}
+library(dplyr)
+```
+
+```{r}
+Taiwan <- tbl_df(Taiwan)
+#Get the change first, up or down
+#Also add a new variable Month
+Taiwan <- Taiwan %>%
+            mutate(Change=(Close - c(Close[-1], NA))) %>%
+            mutate(UpDowns=(Change > 0) * 1) %>%
+            mutate(Index=seq(along=Date)) %>%
+            mutate(Year=substr(Date, 1, 4)) %>%
+            mutate(Month=months(as.Date(Date))) %>%
+            mutate(Quarter=quarters(as.Date(Date)))
+```
+
+```{r}
+#Remove the NA
+Taiwan_1 <- Taiwan[-4395, ]
+```
+
+```{r}
+#According to each year
+#Divided data into trainin and testing, 8:2
+train_I <- Taiwan_1 %>%
+             group_by(Year) %>%
+             sample_frac(0.8, replace=F) %>%
+             ungroup() %>%
+             select(Index)
+#Transform the class
+train_I <- as.matrix(train_I)
+#Train & Test
+train <- Taiwan_1[train_I, ]
+test <- Taiwan_1[-train_I, ]
+```
+
+```{r}
+train %>%
+  group_by(Year) %>%
+  select(UpDowns) %>%
+  table()
+```
+
+```{r}
+train %>%
+  group_by(Year) %>%
+  summarise(n())
+```
+#Model1 Quarter
+```{r}
+#Model 1
+model1 <- glm(UpDowns ~ Quarter, data = train, family=binomial)
+```
+
+```{r}
+#Prediction1
+predict1 <- predict(model1, test, type="response")
+table(Predict=round(predict1), True=test$UpDowns)
+```
+
+```{r, message=FALSE, fig.align='center', fig.width=5}
+library(AUC)
+plot(roc(predict1, as.factor(test$UpDowns)))
+auc(roc(predict1, as.factor(test$UpDowns)))
+```
+#Model2 Quarter + BU + BD
+```{r}
+#Add big ups and downs
+Taiwan <- Taiwan %>%
+            mutate(BU=c((Change[-1] > 100)*1, NA)) %>%
+            mutate(BD=c((Change[-1] < -100)*1, NA))
+```
+
+```{r}
+#Remove the NA
+Taiwan_2 <- Taiwan[-4395, ]
+```
+
+```{r}
+#Train & Test
+train <- Taiwan_2[train_I, ]
+test <- Taiwan_2[-train_I, ]
+```
+
+```{r}
+model2 <- glm(UpDowns ~ Quarter + BU + BD, data = train, family=binomial)
+```
+
+```{r}
+#Prediction2
+predict2 <- predict(model2, test, type="response")
+table(Predict=round(predict2), True=test$UpDowns)
+```
+
+```{r, message=FALSE, fig.align='center', fig.width=5}
+plot(roc(predict2, as.factor(test$UpDowns)))
+auc(roc(predict2, as.factor(test$UpDowns)))
+```
+#Model3 Month + BU + BD + SPUDLag1
+```{r}
+#Add SP
+SP <- read.csv("C:/Users/jason/Desktop/R/CLW_R_Learning/Jason Wang/S&P 500.csv")
+
+SP <- tbl_df(SP)
+SP <- SP %>%
+            mutate(Change=(Close - c(Close[-1], NA))) %>%
+            mutate(UpDowns=(Change > 0) * 1) %>%
+            mutate(SPUDLag1=c(UpDowns[-1], NA))
+```
+
+```{r}
+all <- merge(Taiwan_2, SP, by="Date", all.x=TRUE)
+all <- tbl_df(all)
+Tai_SP <- all %>%
+          select(Date, Year, Month, Close=Close.x, Change=Change.x, BU, BD, 
+                 UpDowns=UpDowns.x, SPUDLag1, Index) %>%
+          arrange(Index)
+```
+
+```{r}
+Tai_SP1 <- Tai_SP[-c(4393, 4394), ]
+```
+
+```{r}
+#Train & Test
+train <- Tai_SP1[train_I, ]
+test <- Tai_SP1[-train_I, ]
+#Model 3
+model3 <- glm(UpDowns ~ Month + BU + BD + SPUDLag1, data=train, family=binomial)
+```
+
+```{r}
+#Prediction3
+predict3 <- predict(model3, test, type="response")
+table(Predict=round(predict3), True=test$UpDowns)
+```
+
+```{r, message=FALSE, fig.align='center', fig.width=5}
+plot(roc(predict3, as.factor(test$UpDowns)))
+auc(roc(predict3, as.factor(test$UpDowns)))
+```
+#Model4 LDA
+```{r, message=FALSE}
+library(MASS)
+#Linear Discriminat Analysis
+model4 <- lda(UpDowns ~ Month + BU + BD + SPUDLag1, data=train)
+```
+
+```{r}
+#Prediction4
+predict4 <- predict(model4, test)$posterior[, 2]
+table(Predict=round(predict4), True=test$UpDowns)
+```
+#Model5 Quarter + BU + BD + Lag1
+```{r}
+Taiwan_2 <- Taiwan_2 %>%
+              mutate(Lag1=c(UpDowns[-1], NA))
+```
+
+```{r}
+#Train & Test
+train <- Taiwan_2[train_I, ]
+test <- Taiwan_2[-train_I, ]
+```
+
+```{r}
+model5 <- glm(UpDowns ~ Quarter + BU + BD + Lag1, data = train, family=binomial)
+```
+
+```{r}
+#Prediction5
+predict5 <- predict(model5, test, type="response")
+table(Predict=round(predict5), True=test$UpDowns)
+```
+
+```{r, message=FALSE, fig.align='center', fig.width=5}
+plot(roc(predict5, as.factor(test$UpDowns)))
+auc(roc(predict5, as.factor(test$UpDowns)))
+```
+#Model6
+```{r, message=FALSE}
+library(dplyr)
+all <- merge(Taiwan_2, SP, by="Date", all.x=TRUE)
+all <- tbl_df(all)
+Tai_SP2 <- all %>%
+          dplyr::select(Date, Year, Month, Close=Close.x, Change=Change.x, BU, BD, 
+                 UpDowns=UpDowns.x, SPUDLag1, Lag1, Index) %>%
+          arrange(Index)
+```
+
+```{r}
+#Train & Test
+train <- Tai_SP2[train_I, ]
+test <- Tai_SP2[-train_I, ]
+#Model 6
+model6 <- glm(UpDowns ~ Month + BU + BD + SPUDLag1 + Lag1, data=train, family=binomial)
+```
+
+```{r}
+#Prediction6
+predict6 <- predict(model6, test, type="response")
+table(Predict=round(predict6), True=test$UpDowns)
+```
+
+```{r, message=FALSE, fig.align='center', fig.width=5}
+plot(roc(predict6, as.factor(test$UpDowns)))
+auc(roc(predict6, as.factor(test$UpDowns)))
+```
+
+```{r}
+Taiwan_3 <- Taiwan %>%
+              mutate(Lag1=c(UpDowns[-1], NA)) %>%
+              mutate(Lag2=c(UpDowns[-(1:2)], rep(NA, 2))) %>%
+              mutate(Lag3=c(UpDowns[-(1:3)], rep(NA, 3))) %>%
+              mutate(Lag4=c(UpDowns[-(1:4)], rep(NA, 4))) %>%
+              mutate(Lag5=c(UpDowns[-(1:5)], rep(NA, 5)))
+
+#Remove NA
+Taiwan_3 <- Taiwan_3[1:4389, ]
+```
+
+```{r}
+#Train & Test
+train <- Taiwan_3[train_I, ]
+test <- Taiwan_3[-train_I, ]
+```
+
+```{r}
+model7 <- glm(UpDowns ~ Quarter + Lag1 + Lag2 + Lag3 + Lag4 + Lag5, data = train, family=binomial)
+```
+
+```{r}
+#Prediction7
+predict7 <- predict(model7, test, type="response")
+table(Predict=round(predict7), True=test$UpDowns)
+```
+
+```{r, message=FALSE, fig.align='center', fig.width=5}
+plot(roc(predict7, as.factor(test$UpDowns)))
+auc(roc(predict7, as.factor(test$UpDowns)))
+```
+
+```{r}
+#Test
+test <- read.csv("C:/Users/jason/Desktop/test.csv")
+test <- rbind(test[, -6], Taiwan[c(1, 2), c(1:5)])
+test <- tbl_df(test)
+
+#Get the change first, up or down
+#Also add a new variable Month
+test <- test %>%
+  mutate(Change=(Close - c(Close[-1], NA))) %>%
+  mutate(UpDowns=(Change > 0) * 1) %>%
+  mutate(Index=seq(along=Date)) %>%
+  mutate(Year=substr(Date, 1, 4)) %>%
+  mutate(Month=months(as.Date(Date))) %>%
+  mutate(Quarter=quarters(as.Date(Date)))
+
+test <- test %>%
+  mutate(BU=c((Change[-1] > 100)*1, NA)) %>%
+  mutate(BD=c((Change[-1] < -100)*1, NA))
+
+
+test <- test %>%
+  mutate(Lag1=c(UpDowns[-1], NA))
+
+test <- test %>% 
+  mutate(Lag1=c(UpDowns[-1], NA)) %>%
+  mutate(Lag2=c(UpDowns[-(1:2)], rep(NA, 2))) %>%
+  mutate(Lag3=c(UpDowns[-(1:3)], rep(NA, 3))) %>%
+  mutate(Lag4=c(UpDowns[-(1:4)], rep(NA, 4))) %>%
+  mutate(Lag5=c(UpDowns[-(1:5)], rep(NA, 5)))
+
+```
+
