@@ -14,8 +14,9 @@ knitr::opts_chunk$set(comment="")
 knitr::opts_chunk$set(fig.align='center')
 ```
 
-```{r package, message=FALSE}
-library(ISLR); library(MASS); library(tree)
+```{r package, message=FALSE, warning=FALSE}
+library(ISLR); library(MASS); library(tree); library(ggplot2)
+library(reshape2); library(randomForest); library(gbm)
 ```
 
 # Regression Tree
@@ -32,16 +33,27 @@ Bostree <- tree(medv ~ ., data=Boston, subset=train)
 Bostree
 summary(Bostree)
 ```
+In the Regression tree, the deviance is defined as below (i.e. RSS):
+$$D_{node}=\sum_{i=1}^{n}(y_{i}-\bar y)^2$$
+It measures the node impurity (disorder).
 
+When fitting a tree, we take a *top down, greedy* approach, known as *recursive binary splitting*. Start from the top of the tree, in each step, we try to make a *best* split according to the criteria such as regression deviance.
+
+We should illustrate more about criteria here. First, we can decided whether make a split by the decreasing amount of RSS (In percentage, `minsdev`). On the other hand, we can also make the minimum number of the node after cut or child node (`minicut`) or minimum number of the node before cut or parent node (`minisize`).  
+You can use `?tree.control` in R to see detailed explaination.
 ```{r visualize_tree, fig.height=5.5}
 plot(Bostree)
 text(Bostree, pretty=0)
 ```
-
+The height of tree of each node reflect the quantity of the deviance.
 ```{r CVtree_arg}
 str(cv.tree)
 ```
+Tree prune is also a very important stage in tree model. If the tree is too large, the model may overfit the data. Therefore, a smaller tree will be more preferable because of the lower variance and easier interpretation at the cost of some bias.
 
+One way to prune tree is described as above that we grow the tree as long as the split cause a moderate decreasing of deviance beyond a threshold. However, it would be too short-sighted. Normally, we will grow a big tree and then prune it. *Cost complexity pruning* or *Weakest link prune* can help us to do this. We add a nonnegative constant $\alpha$ in the deviance term to give penalty to those subtree with many nodes. The function is shown below:
+$$D_{T}=\sum_{m=1}^{|T|} \sum_{x_{i} \in y_{R_{m}}}(y_{i}-2\bar y_{R_{m}})^2 + \alpha |T|$$
+Like chosing the $\lambda$ in lasso, we can use cross validation to decide the alpha. 
 ```{r CV, fig.width=4.5, fig.height=4.5}
 cv.result <- cv.tree(Bostree)
 plot(cv.result$size, cv.result$dev, type="b",
@@ -64,7 +76,11 @@ abline(0, 1)
 mean((test.y - predict.y)^2)
 ```
 # Classification
-```{r error_rate}
+In the Classification tree, the deviance is defined as below:
+$$D_{node}=-2\sum_{k=1}^{m}n_{k}log(\dfrac{n_{k}}{n})=-2[\sum_{k=1}^{m}n_{k}log(n_{k})-nlog(n)]$$
+In classification tree, the measure of disorder have several ways such as classification error rate, Gini Index and cross-entropy.
+
+```{r error_rate, fig.width=7}
 misclass <- function(x){
   min(x, 1 - x)
 }
@@ -72,16 +88,27 @@ gini <- function(x){
   2*x*(1 - x)
 }
 entropy <- function(x){
-  -x*log(x)
+  -x*log(x) - (1 - x)*log(1 - x)
 }
 
 p <- seq(0, 1, by=0.01)
-plot(p, sapply(p, misclass), lwd=2, type="l",
-     main="Comparison",
-     xlab="Proportion in Class 1", ylab="Disorder")
-lines(p, gini(p), col="red", lwd=2)
-lines(p, entropy(p), col="blue", lwd=2)
+
+demo <- data.frame(p=p, Misclass=sapply(p, misclass),
+                   Gini=gini(p), Entropy=entropy(p)/log(2)*0.5)
+demo2 <- melt(demo, id="p")
+
+ggplot(demo2) +
+geom_line(aes(x=p, y=value, class=variable, col=variable))
 ```
+When growing a tree, Gini and entropy will be more sensitive that classification error rate. For instance, suppose that we have 400 observation in two group, (400, 400), if one split creats nodes as region1 (300, 100) and region2 (100, 300), while another split creats nodes as region1 (200, 400) and region2 (200, 0), then gini and entropy will choose the one will lower impurity, which is the latter split.
+
+In first split, $p_{11}=0.75=p_{22}$ and $p_{12}=0.25=p_{21}$. In second split, $p_{11}=0.33$, $p_{12}=0.67$, $p_{21}=1$ and $p_{22}=0$.
+
+1. Misclassification: both classification error rate is 0.25.
+2. Gini: Split1 => node1 0.75$\times$ 0.25 + 0.25$\times$ 0.75 = **0.375**, node2 0.25$\times$ 0.75 + 0.75$\times$ 0.25 = **0.375**. 
+Split2 => node1 0.33$\times$ 0.67 + 0.67$\times$ 0.33 = **0.4422**, node2 0$\times$ 1 + 1$\times$ 0 = **0**.
+3. entropy: Split1 => node1 -0.75$\times$ log(0.75)- 0.25$\times$ log(0.25) = **0.5623**, node2 -0.25$\times$ log(0.25) - 0.75$\times$ log(0.75) = **0.5623**. 
+Split2 => node1 -0.33$\times$ log(0.33) 0 - 0.67$\times$ log(0.67) = **0.6342**, node2 -1$\times$ log(1) - 0$\times$ log(0) = **0**.
 
 ```{r data2}
 data(Carseats)
@@ -124,5 +151,116 @@ test.y <- High[-train]
 test.x <- Carseats[-train, ]
 predict.y <- predict(fit2, newdata=test.x, type="class")
 table(Prediction=predict.y, True=test.y)
+```
+\newpage
+
+# Bagging (Bootstrap Aggregation)
+Tree may sometimes cause overfitting which means the model have a high variance. If we can fit model from many data sets and combine all the result, it may yield a better result. However, we do not have so many data. Therefore, bootstrap can help us somehow simulate lots of data. For regression tree, we can average the result directly. For classification tree, we will assign the observation with the majority class.
+
+As for out of bag (OOB), it is a way that we can estimate the test error. One can show that in each bootstrap simulation, there are around two-thirds observation in it. Hence, we can predict those out-of-bag observations (each may probably have one-third predictions for the total bootstrap number) and average the result. Then we can get a OOB test error estimation.
+```{r bagging}
+#Use the function randomForest in library randomForest
+#Get original train index
+set.seed(1)
+train <- sample(1:nrow(Boston), nrow(Boston)/2)
+test.y <- Boston$medv[-train]
+test.x <- Boston[-train, ]
+#Initialize bagging process
+set.seed(1)
+Boston.bag <- randomForest(medv ~ ., data=Boston, mtry=13,
+                           subset=train, importance=TRUE)
+Boston.bag
+```
+
+```{r prediction3}
+prediction.y.bag <- predict(Boston.bag, newdata=Boston[-train, ])
+mean((test.y - prediction.y.bag)^2)
+#Plot
+plot(prediction.y.bag, test.y, main="prediction vs. test",
+     xlab="prediction", ylab="True value")
+abline(0, 1)
+```
+
+To prove that there are round two-thirds observation in each simulation data set, let's assume n observation in data set:
+
+P(*j*th observation is not the first observation in Bootstrap data set)= $\dfrac{n-1}{n}$
+
+P(*j*th observation is not the second observation in Bootstrap data set)= $\dfrac{n-1}{n}$
+
+...
+
+P(*j*th observation is not the nth observation in Bootstrap data set)= $\dfrac{n-1}{n}$
+
+P(*j*th is not in the Bootstrap data set)= $(\dfrac{n-1}{n})^n = (1-\dfrac{1}{n})^n = (1+\dfrac{-1}{n})^n \approx e^{-1} =$ `r exp(-1)` if n is large.
+
+While bagging improve the prediction accuracy, it makes the model become complex and not-well explainable. But we can summarize each variable's importance by the amount they contribute. For given predictor, we can average the decreasing amount of RSS(Regression) or Gini index, cross-entropy(Classifiction). Then take the biggest as 100%, standardize each variable and get a over-all picture about which variable is much more importance than others.
+```{r importance}
+importance(Boston.bag)
+#Plot
+varImpPlot(Boston.bag)
+```
+
+
+# Random Forest
+For random Forest, it is similar to bagging, but, when we consider each split, we random choose a set of m predictors. It can be kind of offset the effect of dominant variables and lead the result of decorrelating. Normally, m may be $\dfrac{p}{2}$ or $\dfrac{p}{3}$ or $\sqrt{p}$
+
+```{r random_forest}
+set.seed(1)
+Boston.rf <- randomForest(medv ~ ., subset=train, mtry=6,
+                          importance=TRUE, data=Boston)
+Boston.rf
+```
+
+```{r prediction4}
+prediction.y.rf <- predict(Boston.rf, newdata=test.x)
+mean((test.y - prediction.y.rf)^2)
+#Plot
+plot(prediction.y.rf, test.y, main="prediction vs. test, m=6",
+     xlab="prediction", ylab="True value")
+abline(0, 1)
+```
+Try m = $\sqrt{p}$
+```{r randomforest}
+set.seed(1)
+Boston.rf <- randomForest(medv ~ ., subset=train, mtry=4,
+                          importance=TRUE, data=Boston)
+Boston.rf
+```
+
+```{r prediction5}
+prediction.y.rf <- predict(Boston.rf, newdata=test.x)
+mean((test.y - prediction.y.rf)^2)
+#Plot
+plot(prediction.y.rf, test.y, main="prediction vs. test, m=6",
+     xlab="prediction", ylab="True value")
+abline(0, 1)
+```
+# Boosting
+Boosting is another way to enhacne the performance of tree. Its idea is to grow the tree slowly. After each split, we would compute their residual as our new response variable and fit a tree. It is a adaptive model. There are three parameters we should determine when using boosting. First, the number of tree, B. Because we do not want to overfit the data. Therefore we would not fit a big tree. We determine B by cross validation. 
+
+Second, the shrinkage parameterm, $\lambda$. It control the speed that boosting learns. Normally, $\lambda$ is 0.01 or 0.001.
+
+Third, the number of split in each tree, d. When we fit the tree, we can decide the depth of each one. Often d equal to 1 works well. 
+```{r boosting}
+set.seed(1)
+Boston.boost <- gbm(medv ~ ., data=Boston, distribution="gaussian",
+                    n.tree=5000, interaction.depth=4)
+summary(Boston.boost)
+```
+
+```{r partial_dependence_plot}
+par(mfrow=c(1, 2))
+plot(Boston.boost, i="lstat", main="lstat effect")
+plot(Boston.boost, i="rm", main="rm effect")
+```
+
+```{r prediction6}
+prediction.y.boost <- predict(Boston.boost, newdata=test.x,
+                              n.tree=5000)
+mean((test.y - prediction.y.boost)^2)
+#Plot
+plot(prediction.y.boost, test.y, main="prediction vs. test, m=6",
+     xlab="prediction", ylab="True value")
+abline(0, 1)
 ```
 
