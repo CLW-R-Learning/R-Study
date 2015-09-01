@@ -74,6 +74,18 @@ ggplot(mydata) + geom_tile(aes(x=Var1, y=Var2, z=z, fill=z), alpha=0.8) + theme_
 
 
 ```r
+mydata <- expand.grid(x1var, x2var)
+mydata2 <- as.data.frame(rbind(as.matrix(mydata), x))
+
+mydata2$z <- as.factor(c(((mydata[, 1]*coefs[1] + mydata[, 2]*coefs[2] + b) > 0)*2 - 1, y))
+mydata2$o <- rep(c(0, 1), c(10000, 20))
+ggplot(mydata2) + geom_point(aes(x=Var1, y=Var2, color=z, size=o), shape=19) + theme_bw() + scale_color_manual(values=c("dodgerblue", "darkorange"))
+```
+
+<img src="Support_Vector_Machine_files/figure-html/unnamed-chunk-1-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
 plot(svm.fit, data)
 ```
 
@@ -226,5 +238,5 @@ Levels:
 plot(svm.fit2, data)
 ```
 
-<img src="Support_Vector_Machine_files/figure-html/unnamed-chunk-1-1.png" title="" alt="" style="display: block; margin: auto;" />
+<img src="Support_Vector_Machine_files/figure-html/unnamed-chunk-2-1.png" title="" alt="" style="display: block; margin: auto;" />
 
