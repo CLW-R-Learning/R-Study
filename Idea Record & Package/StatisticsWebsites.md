@@ -6,6 +6,7 @@
 * [Single plot with two different y-axes](http://www.r-bloggers.com/r-single-plot-with-two-different-y-axes/?utm_source=feedburner&utm_medium=email&utm_campaign=Feed%3A+RBloggers+%28R+bloggers%29)
 * [R Markdown Tutorial by RStudio and DataCamp](http://www.r-bloggers.com/r-markdown-tutorial-by-rstudio-and-datacamp/?utm_source=feedburner&utm_medium=email&utm_campaign=Feed%3A+RBloggers+%28R+bloggers%29)
 * [Tutorial](http://www.r-bloggers.com/useful-tutorials/?utm_source=feedburner&utm_medium=email&utm_campaign=Feed%3A+RBloggers+%28R+bloggers%29)
+* [R Tutorial, ggplot2, dplyr, shiny...](http://stcorp.nl/R_course/)
 
 ---
 
