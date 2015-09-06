@@ -33,13 +33,13 @@
 * 8/10 [[Change to 9/7]]：**【MaximalMargin Classifier + Support Vector Classifiers】** 9.1 + 9.2
 *         補充：Maximal Margin Classifier Algorithm
 
-* 8/17 [[Change to 9/14]]：**【Support Vector Machines + SVMs withMore than Two Classes + Relationship to Logistic Regression】** 9.3 + 9.4 + 9.5
+* 8/17 [[Change to 9/19]]：**【Support Vector Machines + SVMs withMore than Two Classes + Relationship to Logistic Regression】** 9.3 + 9.4 + 9.5
 *         補充：
 
-* 8/24 [[Change to 9/21]]：**【PolynomialRegression + Step Functions + Basis Functions + Regression Splines】** 7.1 + 7.2 + 7.3 + 7.4
+* 8/24 [[Change to 9/26]]：**【PolynomialRegression + Step Functions + Basis Functions + Regression Splines】** 7.1 + 7.2 + 7.3 + 7.4
 *         補充：
 
-* 8/31 [[Change to 9/28]]：**【Smoothing Splines + Local Regression + Generalized AdditiveModels】** 7.5 + 7.6 + 7.7
+* 8/31 [[Change to 10/3]]：**【Smoothing Splines + Local Regression + Generalized AdditiveModels】** 7.5 + 7.6 + 7.7
 *         補充：
 
 
