@@ -31,7 +31,7 @@
 *         補充：gini, entropy, sensitive, tree's CI
 
 * 8/10 [[Change to 9/7]]：**【MaximalMargin Classifier + Support Vector Classifiers】** 9.1 + 9.2
-*         補充：
+*         補充：Maximal Margin Classifier Algorithm
 
 * 8/17 [[Change to 9/14]]：**【Support Vector Machines + SVMs withMore than Two Classes + Relationship to Logistic Regression】** 9.3 + 9.4 + 9.5
 *         補充：
