@@ -16,7 +16,7 @@ knitr::opts_chunk$set(fig.align='center')
 
 ```{r package, message=FALSE, warning=FALSE}
 library(ISLR); library(MASS); library(tree); library(ggplot2)
-library(reshape2); library(randomForest); library(gbm)
+library(reshape2); library(randomForest); library(gbm); library(rpart); library(rattle); library(rpart.plot)
 ```
 
 # Regression Tree
@@ -46,10 +46,25 @@ plot(Bostree)
 text(Bostree, pretty=0)
 ```
 The height of tree of each node reflect the quantity of the deviance.
+# Other package: rpart, rpart.plot, rattle
 ```{r CVtree_arg}
 str(cv.tree)
 ```
 Tree prune is also a very important stage in tree model. If the tree is too large, the model may overfit the data. Therefore, a smaller tree will be more preferable because of the lower variance and easier interpretation at the cost of some bias.
+```{r rattle}
+Bosrpart_tree <- rpart(medv ~ ., data=Boston, subset=train)
+Bosrpart_tree
+```
+
+```{r fancyplot}
+#Fancy
+fancyRpartPlot(Bosrpart_tree)
+```
+The brightness for each node indicates the predicted value for regression tree. When you fit a classification tree, it will have two color and the brightness of each node represents the impurity.
+```{r prp}
+#Concise
+prp(Bosrpart_tree)
+```
 
 One way to prune tree is described as above that we grow the tree as long as the split cause a moderate decreasing of deviance beyond a threshold. However, it would be too short-sighted. Normally, we will grow a big tree and then prune it. *Cost complexity pruning* or *Weakest link prune* can help us to do this. We add a nonnegative constant $\alpha$ in the deviance term to give penalty to those subtree with many nodes. The function is shown below:
 $$D_{T}=\sum_{m=1}^{|T|} \sum_{x_{i} \in y_{R_{m}}}(y_{i}-2\bar y_{R_{m}})^2 + \alpha |T|$$
@@ -199,7 +214,6 @@ importance(Boston.bag)
 #Plot
 varImpPlot(Boston.bag)
 ```
-
 
 # Random Forest
 For random Forest, it is similar to bagging, but, when we consider each split, we random choose a set of m predictors. It can be kind of offset the effect of dominant variables and lead the result of decorrelating. Normally, m may be $\dfrac{p}{2}$ or $\dfrac{p}{3}$ or $\sqrt{p}$
