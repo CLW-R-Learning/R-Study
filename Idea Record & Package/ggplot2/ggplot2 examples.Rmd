@@ -1,0 +1,195 @@
+---
+title: "ggplot2 by Hadley Wickham (book example)"
+author: "Chih Hui Wang"
+date: "September 29, 2015"
+output: 
+  html_document: 
+    fig_height: 3.3
+    fig_width: 7
+  mainfont: Calibri
+  fontsize: 12pts
+---
+```{r setup}
+knitr::opts_chunk$set(comment="")
+knitr::opts_chunk$set(fig.align='center')
+```
+
+```{r package, message=FALSE}
+library(ggplot2); library(gridExtra)
+```
+
+```{r data1}
+#Data in nlme pacakge
+Oxboys <- nlme::Oxboys
+
+#Summay of data
+summary(Oxboys)
+```
+* Subject: 26 boys
+* age: Centered age
+* Hegiht
+* Occassion: measure in 9 occasions
+
+```{r group_smooth}
+#Plot by group (Subject)
+p <- ggplot(Oxboys, aes(x=age, y=height, group=Subject)) + geom_line() 
+
+#Smooth overall
+p2 <- p + geom_smooth(aes(group=1), method="lm", se=FALSE, size=2)
+
+grid.arrange(p, p2, ncol=2)
+```
+
+```{r boxplot_line}
+#Boxplot for each ocassion
+boysbox <- ggplot(Oxboys, aes(x=Occasion, y=height)) + geom_boxplot()
+
+#Boxplot with line for each subject
+boysbox_line <- boysbox + geom_line(aes(group=Subject), colour="#3366FF")
+
+grid.arrange(boysbox, boysbox_line, ncol=2)
+```
+
+```{r data2}
+#Data in ggplot2 package
+data(diamonds)
+
+summary(diamonds)
+```
+
+```{r stat}
+d <- ggplot(diamonds, aes(x=carat)) + xlim(0, 3)
+
+#Area + count
+d1 <- d + stat_bin(aes(ymax=..count..), binwidth=0.1, geom="area")
+
+#Point + density
+d2 <- d + stat_bin(
+  aes(size=..density..), binwidth=0.1,
+  geom="point", position="identity"
+)
+
+grid.arrange(d1, d2, ncol=2)
+```
+
+# Different geom summary
+
+```{r geom_summary, fig.height=4}
+mydata <- data.frame(x=c(3, 1, 5), y=c(2, 4, 6),
+                      label=c("a", "b", "c"))
+g <- ggplot(mydata, aes(x=x, y=y, label=label)) + xlab(NULL) + ylab(NULL)
+
+grid.arrange(
+  g + geom_point() + ggtitle("Point"),
+  g + geom_bar(stat="Identity") + ggtitle("Bar"),
+  g + geom_line() + ggtitle("Line"),
+  g + geom_path() + ggtitle("Path"),
+  g + geom_area() + ggtitle("Area"),
+  g + geom_text() + ggtitle("Text"),
+  g + geom_tile() + ggtitle("Tile"),
+  g + geom_polygon() + ggtitle("Polygon"),
+  ncol=4
+)
+```
+1. Density
+```{r histogram, warning=FALSE}
+depth_dist <- ggplot(diamonds, aes(depth))
+grid.arrange(
+  depth_dist + geom_histogram(),
+  depth_dist + geom_histogram(aes(y=..density..), binwidth=0.1) + xlim(55, 70),
+  ncol=2
+)
+```
+
+* Conditional density
+
+```{r conditional, warning=FALSE, fig.width=8, fig.height=12}
+grid.arrange(
+  depth_dist + geom_histogram(aes(y=..density..), binwidth=0.1) + facet_grid(cut ~ .) + xlim(55, 70),
+  depth_dist + geom_freqpoly(aes(y=..density.., color=cut), binwidth=0.1) + xlim(55, 75),
+  ggplot(diamonds, aes(x=cut, y=depth)) + geom_boxplot(),
+  ncol=1
+)
+```
+
+* 2D density
+
+```{r 2D, fig.height=4}
+norm <- data.frame(x=rnorm(10000), y=rnorm(10000))
+
+g <- ggplot(norm, aes(x=x, y=y))
+grid.arrange(
+  g + geom_point(),
+  g + geom_point(shape="."),
+  g + geom_point(alpha=1/3),
+  g + geom_point(alpha=1/5),
+  ncol=2
+)
+```
+
+# Maps
+
+```{r map, fig.height=6}
+library(maps)
+ggplot() + borders("world", size=0.5)
+```
+
+```{r captial, message=FALSE, fig.height=6}
+data("us.cities")
+#Pull out capital for each state
+library(dplyr)
+capital <- us.cities %>%
+            filter(capital == 2)
+
+ggplot(capital, aes(x=long, y=lat)) + geom_point() + borders("state", size=0.5)
+```
+
+```{r mapsummary, fig.width=8, fig.height=8}
+#Map data(states)
+states <- map_data("state")
+#crime summary for us cities
+arrest <- USArrests
+
+#Change the name into lower case
+names(arrest) <- tolower(names(arrest))
+#Add a column for merge later
+arrest$region <- tolower(rownames(arrest))
+
+#Combine by region
+choro <- merge(states, arrest, by = "region")
+
+# Reorder the rows because order matters when drawing polygons
+# and merge destroys the original ordering
+choro <- choro[order(choro$order), ]
+
+grid.arrange(
+  ggplot(choro, aes(x=long, y=lat, group=group, fill=murder)) + geom_polygon(),
+  ggplot(choro, aes(x=long, y=lat, group=group, fill=assault)) + geom_polygon(),
+  ggplot(choro, aes(x=long, y=lat, group=group, fill=urbanpop)) + geom_polygon(),
+  ggplot(choro, aes(x=long, y=lat, group=group, fill=rape)) + geom_polygon(),
+  ncol=2
+)
+```
+
+# Annotation
+
+```{r eco_data}
+head(economics)
+```
+
+```{r pre_data}
+head(presidential)
+```
+
+```{r annotation}
+uemp <- ggplot(economics, aes(x=date, y=unemploy)) + xlab("Year") + ylab("No. of unemploy")
+
+uemp + geom_line()
+```
+
+```{r line}
+yrng <- range(economics$unemploy)
+#Add different president period
+uemp + geom_line() + geom_rect(aes(NULL, NULL, xmin=start, xmax=end, fill=party), ymin=yrng[1], ymax=yrng[2], data=presidential, alpha=0.2) + scale_fill_manual(values=c("blue", "red"))
+```
+
