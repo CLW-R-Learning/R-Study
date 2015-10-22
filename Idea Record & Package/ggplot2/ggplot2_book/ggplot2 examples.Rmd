@@ -5,7 +5,7 @@ date: "September 29, 2015"
 output: 
   html_document: 
     fig_height: 3.3
-    fig_width: 7
+    keep_md: yes
   mainfont: Calibri
   fontsize: 12pts
 ---
@@ -91,7 +91,7 @@ grid.arrange(
   ncol=4
 )
 ```
-1. Density
+* Density
 ```{r histogram, warning=FALSE}
 depth_dist <- ggplot(diamonds, aes(depth))
 grid.arrange(
@@ -144,7 +144,7 @@ capital <- us.cities %>%
 ggplot(capital, aes(x=long, y=lat)) + geom_point() + borders("state", size=0.5)
 ```
 
-```{r mapsummary, fig.width=8, fig.height=8}
+```{r mapsummary, fig.width=10, fig.height=8}
 #Map data(states)
 states <- map_data("state")
 #crime summary for us cities
@@ -191,5 +191,74 @@ uemp + geom_line()
 yrng <- range(economics$unemploy)
 #Add different president period
 uemp + geom_line() + geom_rect(aes(NULL, NULL, xmin=start, xmax=end, fill=party), ymin=yrng[1], ymax=yrng[2], data=presidential, alpha=0.2) + scale_fill_manual(values=c("blue", "red"))
+```
+
+### legend and color
+```{r sleepdata}
+head(msleep)
+```
+
+```{r changelegend, fig.height=6, fig.width=10, warning=FALSE}
+g <- ggplot(msleep, aes(x=sleep_total, y=sleep_cycle, color=vore)) + geom_point()
+grid.arrange(
+  #Default
+  g,
+  
+  #Change legend and label name
+  g + scale_color_hue("What does it eat?",
+                      breaks=c("carni", "herbi", "omni", "insecti"),
+                      labels=c("meat", "plant", "both", "No idea")),
+  
+  #Change palette
+  g + scale_color_brewer(palette = "Set1"),
+  
+  #change all manually
+  g + scale_color_manual("What does it eat?", values=c("red", "forestgreen", "powderblue", "black"), breaks=c("carni", "herbi", "omni", "insecti"), labels=c("meat", "plant", "both", "No idea")),
+  ncol=2
+)
+```
+### name
+```{r changelab, fig.height=6, fig.width=8}
+g <- ggplot(mpg, aes(x=cty, y=hwy, color=displ)) + geom_point()
+
+grid.arrange(
+  #Default
+  g,
+  
+  #Change xlab and ylab name,
+  g + xlab("City mpg") + ylab("Highway mpg"),
+  
+  #All in one command,
+  g + labs(x="City mpg", y="Highway mpg", color="Displacement"),
+  
+  #Math notation, check ?plotmath
+  g + xlab(expression(frac(mpg, gallon))),
+  ncol=2
+)
+```
+### breaks and limits
+```{r changebreak, fig.height=7, fig.width=10, warning=FALSE}
+g <- ggplot(mtcars, aes(x=cyl, y=wt)) + geom_point()
+g2 <- ggplot(mtcars, aes(x=wt, y=cyl, color=cyl)) + geom_point()
+  
+grid.arrange(
+  #Default
+  g,
+  
+  #Change breaks
+  g + scale_x_continuous(breaks=c(4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8)),
+  
+  #Change limits
+  g + scale_x_continuous(limits=c(5.5, 6.5)),
+  
+  #Default
+  g2,
+  
+  #break
+  g2 + scale_color_gradient(breaks=c(5.5, 6.5)),
+  #limit
+  g2 + scale_color_gradient(limits=c(5.5, 6.5)),
+  ncol=3
+)
 ```
 
