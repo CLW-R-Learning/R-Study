@@ -338,6 +338,7 @@ grid.arrange(
 ```
 
 <img src="ggplot2_examples_files/figure-html/changelegend-1.png" title="" alt="" style="display: block; margin: auto;" />
+
 ### name
 
 ```r
@@ -360,6 +361,7 @@ grid.arrange(
 ```
 
 <img src="ggplot2_examples_files/figure-html/changelab-1.png" title="" alt="" style="display: block; margin: auto;" />
+
 ### breaks and limits
 
 ```r
@@ -388,4 +390,99 @@ grid.arrange(
 ```
 
 <img src="ggplot2_examples_files/figure-html/changebreak-1.png" title="" alt="" style="display: block; margin: auto;" />
+### axis
+
+```r
+#The axis use transformation in ggplot is the original scale, but the graph is log scale
+grid.arrange(
+  ggplot(diamonds, aes(x=carat, y=price)) + geom_point() + scale_x_continuous(trans="log10") + scale_y_continuous(trans="log10"),
+  ggplot(diamonds, aes(x=log(carat), log(price))) + geom_point(),
+  ncol=2
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/log_scale-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
+# to access breaks/formatting functions
+library(scales)
+g <- ggplot(economics, aes(x=date, y=psavert)) + geom_line() + geom_hline(xintercept=0, color="grey50")
+
+grid.arrange(
+  g,
+  g + scale_x_date(breaks=date_breaks("5 years")),
+  g + scale_x_date(breaks=date_breaks("5 years"), labels=date_format("%Y")),
+  nrow=3
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/date-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### data_format Code
+
+Code | Meaning
+------------- | -------------
+%S | second (00-59)
+%M | minute (00-59)
+%l | hour, in 12-hour clock (1-12)
+%I | hour, in 12-hour clock (01-12)
+%H | hour, in 24-hour clock (00-23)
+%a | day of the week, abbreviated (Mon-Sun)
+%A | day of the week, full (Monday-Sunday)
+%e | day of the month (1-31)
+%d | day of the month (01-31)
+%m | month, numeric (01-12)
+%b | month, abbreviated (Jan-Dec)
+%B | month, full (January-December)
+%y | year, without century (00-99)
+%Y | year, with century (0000-9999)
+
+
+### Color
+
+```r
+f2d <- with(faithful, MASS::kde2d(eruptions, waiting,
+                                  h = c(1, 10), n = 50))
+
+df <- with(f2d, cbind(expand.grid(x, y), as.vector(z)))
+names(df) <- c("eruptions", "waiting", "density")
+
+#expand=c(0, 0) to remove the side space
+g <- ggplot(df, aes(x=eruptions, y=waiting, fill=density)) + geom_tile() + scale_x_continuous(expand=c(0, 0)) + scale_y_continuous(expand=c(0, 0))
+
+grid.arrange(
+  g + scale_fill_gradient(limits=c(0, 0.04)),
+  g + scale_fill_gradient(limits = c(0, 0.04),
+low = "white", high = "black"),
+  g + scale_fill_gradient2(limits = c(-0.04, 0.04),
+midpoint = mean(df$density)),
+  ncol=3
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/continuous-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
+g <- ggplot(msleep, aes(x=brainwt, y=bodywt, color=vore)) + geom_point() + scale_x_continuous(trans="log10") + scale_y_continuous(trans="log10")
+
+color <- c(carni="red", herbi="green", omni="blue", insecti="orange", "NA"="black")
+
+grid.arrange(
+  g,
+  g + scale_color_manual(values=color),
+  ncol=2
+)
+```
+
+```
+Warning: Removed 27 rows containing missing values (geom_point).
+```
+
+```
+Warning: Removed 27 rows containing missing values (geom_point).
+```
+
+<img src="ggplot2_examples_files/figure-html/discrete-1.png" title="" alt="" style="display: block; margin: auto;" />
 
