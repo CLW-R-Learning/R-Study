@@ -9,7 +9,7 @@ output:
   mainfont: Calibri
   fontsize: 12pts
 ---
-```{r setup}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(comment="")
 knitr::opts_chunk$set(fig.align='center')
 ```
@@ -263,8 +263,8 @@ grid.arrange(
   ncol=3
 )
 ```
-### axis
-```{r, log_scale}
+### scale
+```{r log_scale}
 #The axis use transformation in ggplot is the original scale, but the graph is log scale
 grid.arrange(
   ggplot(diamonds, aes(x=carat, y=price)) + geom_point() + scale_x_continuous(trans="log10") + scale_y_continuous(trans="log10"),
@@ -273,7 +273,7 @@ grid.arrange(
 )
 ```
 
-```{r, date, fig.height=10}
+```{r date, fig.height=10}
 # to access breaks/formatting functions
 library(scales)
 g <- ggplot(economics, aes(x=date, y=psavert)) + geom_line() + geom_hline(xintercept=0, color="grey50")
@@ -307,7 +307,7 @@ Code | Meaning
 
 
 ### Color
-```{r, continuous, fig.width=12}
+```{r continuous, fig.width=12}
 f2d <- with(faithful, MASS::kde2d(eruptions, waiting,
                                   h = c(1, 10), n = 50))
 
@@ -327,7 +327,7 @@ midpoint = mean(df$density)),
 )
 ```
 
-```{r, discrete}
+```{r discrete}
 g <- ggplot(msleep, aes(x=brainwt, y=bodywt, color=vore)) + geom_point() + scale_x_continuous(trans="log10") + scale_y_continuous(trans="log10")
 
 color <- c(carni="red", herbi="green", omni="blue", insecti="orange", "NA"="black")
@@ -337,5 +337,71 @@ grid.arrange(
   g + scale_color_manual(values=color),
   ncol=2
 )
+```
+
+### Faceting
+
+####1. Faect grid
+
+* . ~ a: A single row with multiple columns.
+* b ~ .: A single column with multiple rows.
+* . ~ .: Default
+* a ~ b: Multiple rows and columns.
+
+```{r grid1}
+# . ~ a
+ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point() + facet_grid(. ~ am)
+```
+
+```{r grid2, fig.height=7}
+# b ~ .
+ggplot(mtcars, aes(x=mpg)) + geom_histogram(binwidth=1) + facet_grid(cyl ~ .)
+```
+
+```{r grid3, fig.height=7}
+# a ~ b
+ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point() + facet_grid(gear ~ am)
+```
+
+### Add margin & smooth line
+```{r smooth, fig.height=7}
+ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point() + facet_grid(gear ~ am, margins=TRUE) + geom_smooth(aes(colour = gear), method = "lm", se = F)
+```
+
+### space in facet grid
+
+```{r nospace,fig.height=10}
+ggplot(mpg, aes(x=cty, y=model)) + geom_point() + facet_grid(manufacturer ~ ., scale="free")
+```
+
+When the space can vary freely, each column (or
+row) will have width (or height) proportional to the range of the scale for that
+column (or row).
+```{r space, fig.height=10}
+#Space is free
+ggplot(mpg, aes(x=cty, y=model)) + geom_point() + facet_grid(manufacturer ~ ., space="free", scale="free")
+```
+
+
+####2. Facet wrap
+```{r wrap1, fig.height=10, fig.width=10}
+economics$year <- substr(economics$date, 1, 4)
+ggplot(economics, aes(x=unemploy, y=uempmed)) + geom_point() + facet_wrap(~ year, ncol=6)
+```
+
+#### Both of grid and wrap can adjust the scale
+
+* scales = "fixed": x and y scales are fixed across all panels.
+* scales = "free": x and y scales vary across panels.
+* scales = "free_x": the x scale is free, and the y scale is fixed.
+* scales = "free_y": the y scale is free, and the x scale is fixed.
+
+```{r wrap2, fig.height=10, fig.width=10}
+ggplot(economics, aes(x=unemploy, y=uempmed)) + geom_point() + facet_wrap(~ year, ncol=6, scale="free")
+```
+
+### Coordinate System
+```{r}
+
 ```
 

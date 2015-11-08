@@ -2,10 +2,6 @@
 Chih Hui Wang  
 September 29, 2015  
 
-```r
-knitr::opts_chunk$set(comment="")
-knitr::opts_chunk$set(fig.align='center')
-```
 
 
 ```r
@@ -390,7 +386,7 @@ grid.arrange(
 ```
 
 <img src="ggplot2_examples_files/figure-html/changebreak-1.png" title="" alt="" style="display: block; margin: auto;" />
-### axis
+### scale
 
 ```r
 #The axis use transformation in ggplot is the original scale, but the graph is log scale
@@ -485,4 +481,92 @@ Warning: Removed 27 rows containing missing values (geom_point).
 ```
 
 <img src="ggplot2_examples_files/figure-html/discrete-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### Faceting
+
+####1. Faect grid
+
+* . ~ a: A single row with multiple columns.
+* b ~ .: A single column with multiple rows.
+* . ~ .: Default
+* a ~ b: Multiple rows and columns.
+
+
+```r
+# . ~ a
+ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point() + facet_grid(. ~ am)
+```
+
+<img src="ggplot2_examples_files/figure-html/grid1-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
+# b ~ .
+ggplot(mtcars, aes(x=mpg)) + geom_histogram(binwidth=1) + facet_grid(cyl ~ .)
+```
+
+<img src="ggplot2_examples_files/figure-html/grid2-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
+# a ~ b
+ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point() + facet_grid(gear ~ am)
+```
+
+<img src="ggplot2_examples_files/figure-html/grid3-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### Add margin & smooth line
+
+```r
+ggplot(mtcars, aes(x=wt, y=mpg)) + geom_point() + facet_grid(gear ~ am, margins=TRUE) + geom_smooth(aes(colour = gear), method = "lm", se = F)
+```
+
+<img src="ggplot2_examples_files/figure-html/smooth-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### space in facet grid
+
+
+```r
+ggplot(mpg, aes(x=cty, y=model)) + geom_point() + facet_grid(manufacturer ~ ., scale="free")
+```
+
+<img src="ggplot2_examples_files/figure-html/nospace-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+When the space can vary freely, each column (or
+row) will have width (or height) proportional to the range of the scale for that
+column (or row).
+
+```r
+#Space is free
+ggplot(mpg, aes(x=cty, y=model)) + geom_point() + facet_grid(manufacturer ~ ., space="free", scale="free")
+```
+
+<img src="ggplot2_examples_files/figure-html/space-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+####2. Facet wrap
+
+```r
+economics$year <- substr(economics$date, 1, 4)
+ggplot(economics, aes(x=unemploy, y=uempmed)) + geom_point() + facet_wrap(~ year, ncol=6)
+```
+
+<img src="ggplot2_examples_files/figure-html/wrap1-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+#### Both of grid and wrap can adjust the scale
+
+* scales = "fixed": x and y scales are fixed across all panels.
+* scales = "free": x and y scales vary across panels.
+* scales = "free_x": the x scale is free, and the y scale is fixed.
+* scales = "free_y": the y scale is free, and the x scale is fixed.
+
+
+```r
+ggplot(economics, aes(x=unemploy, y=uempmed)) + geom_point() + facet_wrap(~ year, ncol=6, scale="free")
+```
+
+<img src="ggplot2_examples_files/figure-html/wrap2-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### Coordinate System
+
 
