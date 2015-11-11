@@ -569,4 +569,162 @@ ggplot(economics, aes(x=unemploy, y=uempmed)) + geom_point() + facet_wrap(~ year
 
 ### Coordinate System
 
+* A useful function: coord_flip(), which can flip the x, y axis.
+
+#### limits for scale and coordinate system
+
+```r
+g <- ggplot(mtcars, aes(x=disp, y=wt)) + geom_point() + geom_smooth()
+
+grid.arrange(
+  g,
+  #Eliminate points outside the limits
+  g + scale_x_continuous(limits=c(300, 500)),
+  #Display small region 
+  g + coord_cartesian(xlim=c(300, 500)),
+  ncol=3
+)
+```
+
+```
+geom_smooth: method="auto" and size of largest group is <1000, so using loess. Use 'method = x' to change the smoothing method.
+geom_smooth: method="auto" and size of largest group is <1000, so using loess. Use 'method = x' to change the smoothing method.
+```
+
+```
+Warning: Removed 21 rows containing missing values (stat_smooth).
+```
+
+```
+Warning: Removed 21 rows containing missing values (geom_point).
+```
+
+```
+geom_smooth: method="auto" and size of largest group is <1000, so using loess. Use 'method = x' to change the smoothing method.
+```
+
+<img src="ggplot2_examples_files/figure-html/coord-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+#### trans for scale and coordinate system
+
+```r
+grid.arrange(
+  ggplot(diamonds, aes(x=carat, y=price)) + geom_point() + geom_smooth(method="lm") + scale_x_continuous(trans="log10") + scale_y_continuous(trans="log10"),
+  #exp_trans in scales library
+  ggplot(diamonds, aes(x=carat, y=price)) + geom_point() + geom_smooth(method="lm") + scale_x_continuous(trans="log10") + scale_y_continuous(trans="log10") +  coord_trans(x=exp_trans(10), y=exp_trans(10)),
+  ncol=2
+
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/trans-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+#### Polar system
+For more details, see the document.
+
+```r
+pie <- ggplot(mtcars, aes(x=factor(1), fill=factor(cyl))) + geom_bar(width=1)
+grid.arrange(
+  pie,
+  pie + coord_polar(),
+  pie + coord_polar(theta="y"),
+  ncol=3
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/polarSystem-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+#Themes
+
+There are two themes in ggplot. One is the default grey background with white gridlines while the other one is white background with grey gridlines.
+
+```r
+grid.arrange(
+  ggplot(movies, aes(x=rating)) + geom_histogram(binwidth=1),
+  ggplot(movies, aes(x=rating)) + geom_histogram(binwidth=1) + theme_bw(),
+  ncol=2
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/themes-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### Adjustment for text
+
+```r
+myhist <- ggplot(movies, aes(x=rating)) + geom_histogram(binwidth=1) + labs(title="Historgram")
+
+grid.arrange(
+  myhist,
+  myhist + theme(plot.title=element_text(size=20)),
+  myhist + theme(plot.title=element_text(size=20, color="red")),
+  myhist + theme(plot.title=element_text(size=20, hjust=0)),
+  myhist + theme(plot.title=element_text(size=20, face="bold")),
+  myhist + theme(plot.title=element_text(size=20, angle=30)),
+  ncol=3
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/text-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### Adjustment for gridlines and axis
+
+```r
+grid.arrange(
+  myhist + theme(panel.grid.major=element_line(color="red", size=2)),
+  myhist + theme(panel.grid.major=element_line(linetype="dotted")),
+  myhist + theme(axis.line=element_line(color="red")),
+  ncol=3
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/gridline-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### Adjustment for rectangles and panel background
+
+```r
+grid.arrange(
+  myhist + theme(plot.background=element_rect(fill="grey80", color=NA)),
+  myhist + theme(plot.background=element_rect(size=2, color="red")),
+  myhist + theme(panel.background=element_rect(fill="dodgerblue")),
+  myhist + theme(panel.background=element_rect(fill=NA, color="blue", linetype="dashed")),
+  #Use element_blank to remove the theme you don't want
+  myhist + theme(panel.grid.major=element_blank()),
+  myhist + theme(panel.background=element_blank()),
+  ncol=3
+)
+```
+
+<img src="ggplot2_examples_files/figure-html/rect-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+### Set up default theme
+
+```r
+mydata <- data.frame(x=rnorm(100), y=rnorm(100))
+ggplot(mydata, aes(x=x, y=y)) + geom_point()
+```
+
+<img src="ggplot2_examples_files/figure-html/defaulttheme-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
+matcha_theme <- theme_set(theme_bw())
+theme_set(matcha_theme)
+matcha_theme <- theme_update(
+  plot.title=element_text(size=40, color="cadetblue1"),
+  plot.background=element_rect(fill="olivedrab3"),
+  panel.background=element_rect(fill="olivedrab3"),
+  axis.text.x=element_text(colour="orchid3"),
+  axis.text.y=element_text(colour="orchid3", hjust=1),
+  axis.title.x=element_text(colour="orchid3", face="bold"),
+  axis.title.y=element_text(colour="orchid3", face="bold", angle=90)
+)
+ggplot(mydata, aes(x=x, y=y)) + geom_point() + labs(title="OMG! It's Matcha!!!")
+```
+
+<img src="ggplot2_examples_files/figure-html/changetheme-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+```r
+#Get back to original theme
+theme_set(theme_grey())
+```
 
