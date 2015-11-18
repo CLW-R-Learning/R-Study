@@ -65,12 +65,14 @@ With data, we can start to construct our database. We will use `data.table`, `RS
 ```{r package}
 library(data.table)
 library(RSQLite)
+library(dplyr)
 ```
 
 To create database, first we have to open a connection to an empty database. There are several ways to import table into database. Here I first read the data into R, remove the row which DepDelay is NA and use `dbWriteTable` to write data into the database. With argument `append=TRUE`, I can append the data one by one into database. It also takes about 30 minutes to create the database.
 
 The alternative way is to unzip all the file and then directly write the csv file into database. 
 
+### Complete Database
 ```{r database, eval=FALSE}
 #Create database connection
 db <- dbConnect(SQLite(), dbname="airline.db")
@@ -105,6 +107,59 @@ for(i in year){
 }
 ```
 
+### Sample Database(10% size)
+
+It takes about 10 minute to create this sample database.
+
+```{r database2, eval=FALSE}
+#Set seed
+set.seed(0)
+
+#Create database connection
+db <- dbConnect(SQLite(), dbname="airline.db")
+
+#Length to check that the function read the data correctly 
+l <- 0 
+system.time(
+for(i in year){
+  #Print message for reading
+  cat(paste("Start reading data for", i, "\n"))
+  
+  #Construct the command to read data
+  #This is bash code for sequential unzip the data
+  #which it will process through the data without
+  #expilictly unzip it. 
+  in_file <- paste("bunzip2 -c ", i, ".csv.bz2", sep="")
+  
+  #Read data
+  data <- fread(in_file)
+  
+  #Remove DepDelay NA
+  data <- data[!is.na(data$DepDelay), ]
+  
+  #sample only 10 percent of observation
+  data <- data %>% group_by(UniqueCarrier) %>% sample_frac(0.1, replace=FALSE)
+  
+  #Change class
+  class(data) <- "data.frame"
+  
+  #Check length   
+  l <- l + dim(data)[1]
+  
+  #Write data into the Flight table
+  dbWriteTable(conn=db, name="Sairline", value=data, append=TRUE)
+  
+  #Remove data
+  rm(data)
+  
+  #Print message for reading
+  cat(paste("Finished reading data for", i, "\n"))
+}
+)
+```
+
+_For the following demonstration, we will use the small database._
+
 After constructing the database, we can use `dbListTables` and `dbListFields` to examine the tables in the database and the fields for certain table
 
 ```{r connection, include=FALSE}
@@ -116,7 +171,7 @@ db <- dbConnect(SQLite(), dbname="Airline/airline.db")
 dbListTables(db)
 
 #Column name in airline
-dbListFields(db, "airline")
+dbListFields(db, "Sairline")
 ```
 
 ### 4. Query
@@ -127,7 +182,7 @@ First, you can use the SQL syntax and the function `dbGetQuery` in DBI package, 
 
 Here we use _count(*)_ to count the row number in the airline dataset.
 ```{r query}
-query_count <- "select count(*) as Count from airline" 
+query_count <- "select count(*) as Count from Sairline" 
 dbGetQuery(db, query_count)
 ```
 
@@ -135,7 +190,7 @@ Also, you can use another function `dbSendQuery` combined with `fetch` to pull o
 
 (Note: You probably do not want to pull everything back to your R which probably will crash your R because of the massive memory use.)
 ```{r query2}
-query_data <- "select * from airline"
+query_data <- "select * from Sairline"
 
 #Send the query while not fetch any data back
 fulldata <- dbSendQuery(db, query_data)
@@ -151,12 +206,10 @@ You can keep fetching next 3 observations like the way previous code. When you f
 dbClearResult(fulldata)
 ```
 
-#### dplyr
+#### b. dplyr
 
 In dplyr, you can write the query in a more R way (not SQL syntax). You have to use `src_sqlite` to connect the database and `tbl` to get the airline data. Then, you can start write the code to pull out information you want to search.
 ```{r dplyr1, message=FALSE, include=FALSE}
-library(dplyr)
-
 #Open connection to database
 flight <- src_sqlite("Airline/airline.db")
 ```
@@ -170,7 +223,7 @@ flight <- src_sqlite("Airline/airline.db")
 
 ```{r tbl}
 #Connection to our airline table
-airline <- tbl(flight, "airline")
+airline <- tbl(flight, "Sairline")
 
 airline %>% head()
 ```
@@ -191,11 +244,10 @@ Useful function
 
 The following are two examples:
 ```{r demo}
-#Compute the proportion of delay flight for each combination of airline, month, dayofweek, origin, dest
+#Compute the proportion of more than 30 minutes delay flight for each combination of airline, month, dayofweek, origin, dest
 airline %>%
-  filter(Year == 2008) %>%
-  group_by(UniqueCarrier, Origin, Dest) %>%
-  summarise(late_proportion=mean(DepDelay < 0)) %>%
+  group_by(UniqueCarrier, Origin, Dest, Month, DayofWeek) %>%
+  summarise(late_proportion=mean(DepDelay > 60)) %>%
   ungroup() %>%
   arrange(desc(late_proportion)) %>%
   head()
@@ -242,7 +294,7 @@ Column | Name | Description
 28 | SecurityDelay | in minutes
 29 | LateAircraftDelay | in minutes
 
-### Have fun for playing airline dataset!
+### Have fun!
 
 ### Reference
 
