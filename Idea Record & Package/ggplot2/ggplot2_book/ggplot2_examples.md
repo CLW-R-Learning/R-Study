@@ -5,7 +5,7 @@ September 29, 2015
 
 
 ```r
-library(ggplot2); library(gridExtra)
+library(ggplot2); library(gridExtra); library(grid)
 ```
 
 
@@ -727,4 +727,78 @@ ggplot(mydata, aes(x=x, y=y)) + geom_point() + labs(title="OMG! It's Matcha!!!")
 #Get back to original theme
 theme_set(theme_grey())
 ```
+
+
+### Save your graph
+
+Use `ggsave()` to save the graph. There are three arguments that you can adjust, height, width, and scale.
+An alternative way is use the default function in R such as `png()` and `pdf()` and after finishing the plot, use `dev.off()` to close it. 
+
+```r
+ggplot(mydata, aes(x=x, y=y)) + geom_point()
+ggsave(file="matcha.pdf")
+```
+
+### Multiple plot on same page
+
+As you may notice, I have used the technique throughout this demo. Now we will focus on the subplot.
+Here is the example for subplot.
+
+```r
+a <- ggplot(economics, aes(x=date, y=unemploy)) + geom_line()
+b <- ggplot(economics, aes(x=uempmed, y=unemploy)) + geom_point() + geom_smooth(se=FALSE)
+c <- ggplot(economics, aes(x=uempmed, y=unemploy)) + geom_path()
+```
+
+
+```r
+csmall <- c + theme_gray(9) + labs(x = NULL, y = NULL) + theme(plot.margin = unit(rep(0, 4), "lines"))
+subvp <- viewport(width = 0.4, height = 0.4, x = 0.75, y = 0.35)
+
+b
+```
+
+```
+geom_smooth: method="auto" and size of largest group is <1000, so using loess. Use 'method = x' to change the smoothing method.
+```
+
+```r
+print(csmall, vp = subvp)
+```
+
+<img src="ggplot2_examples_files/figure-html/subplot-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
+#Another way to do multiple plot
+pushViewport(viewport(layout = grid.layout(2, 2)))
+vplayout <- function(x, y){
+  viewport(layout.pos.row = x, layout.pos.col = y)
+}
+
+print(a, vp = vplayout(1, 1:2))
+print(b, vp = vplayout(2, 1))
+```
+
+```
+geom_smooth: method="auto" and size of largest group is <1000, so using loess. Use 'method = x' to change the smoothing method.
+```
+
+```r
+print(c, vp = vplayout(2, 2))
+```
+
+<img src="ggplot2_examples_files/figure-html/multiple-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
+#The same code as previous
+grid.arrange(a, arrangeGrob(b, c, ncol=2), nrow=2)
+```
+
+```
+geom_smooth: method="auto" and size of largest group is <1000, so using loess. Use 'method = x' to change the smoothing method.
+```
+
+<img src="ggplot2_examples_files/figure-html/grid-1.png" title="" alt="" style="display: block; margin: auto;" />
 
