@@ -1,0 +1,266 @@
+---
+title: "ggplot2-airline dataset"
+author: "Chih Hui(Jason) Wang"
+date: "November 17, 2015"
+output: 
+  html_document: 
+    keep_md: yes
+  mainfont: Calibri
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment='')
+knitr::opts_chunk$set(fig.align='center')
+```
+
+```{r package, message=FALSE}
+library(RSQLite)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(dplyr)
+library(reshape2)
+```
+
+```{r dbConnection}
+#Connect database
+db <- dbConnect(SQLite(), "C:/Users/jason/Documents/Airline/airline.db")
+```
+
+## Proportion of late for a week according to past data
+
+```{r view1, eval=FALSE}
+view1 <- "
+create view flight as
+select CRSDeptime/100 as Hour, DayofWeek, DepDelay
+from Sairline
+where DepDelay < 1440
+"
+
+#Send Query to create view(read only)
+dbSendQuery(db, view1)
+
+#Check whether we successfully create view
+dbListTables(db)
+```
+
+
+```{r query1}
+query1 <- "
+select Hour, DayofWeek, AVG(DepDelay > 30) as proportion_late
+from flight
+group by Hour, DayofWeek
+"
+
+system.time(data <- dbGetQuery(db, query1))
+```
+
+```{r proportion_late, fig.width=10, fig.height=4}
+myweek <- function(x){
+  week <- c("Monday", "Tuesday", "Wednesday", "Thursday",
+            "Friday", "Saturday", "Sunday")
+  week[x]
+}
+
+#Transform DayofWeek into Mon...Sun
+data$DayofWeek <- myweek(data$DayofWeek)
+data$DayofWeek <- factor(data$DayofWeek, levels=myweek(1:7))
+
+g1 <- ggplot(data, aes(x=Hour, y=DayofWeek, fill=proportion_late)) + geom_tile()
+
+g1 + scale_fill_continuous(low="white", high="red") + scale_x_continuous(breaks=0:24) + coord_cartesian(xlim=c(-0.5, 24.5)) + labs(x="Time", y="day of week", title="Proportion of late flight for Week") + theme_bw()
+```
+
+## Proportion of late for major airlines
+
+```{r query2}
+query2 <- "
+select Year, UniqueCarrier, AVG(DepDelay > 30) as proportion_late
+from Sairline
+group by Year, UniqueCarrier
+"
+
+system.time(data <- dbGetQuery(db, query2))
+t <- table(data$UniqueCarrier)
+t
+```
+
+```{r process}
+#Get the major airline name
+major_air <- names(t)[which(t == 22)]
+
+data <- subset(data, UniqueCarrier %in% major_air)
+head(data)
+```
+
+```{r airline_late, fig.width=10, fig.height=5}
+g2 <- ggplot(data, aes(x=Year, y=proportion_late, color=UniqueCarrier)) + geom_line(size=1.5) + facet_wrap(~ UniqueCarrier, ncol=4)
+
+#Change color and label name
+color <- c(AA="red", AS="orange", CO="burlywood1", DL="dodgerblue", NW="limegreen", UA="blue", US="green", WN="violet")
+
+#Airline name
+airname <- c("American Airline", "Alaska Airlines", "Continental Airlines", "Delta Air Lines", "Northwest Airlines", "United Airlines", "US Airways", "Southwest Airlines")
+
+g2 + scale_color_manual("Airline", values=color, labels=airname) + labs(title="Proportion of late flight for 8 major airlines from 1987 to 2008", x="Year", y="Proportion of late flight")
+```
+
+## DepDelay versus ArrDelay
+```{r query3}
+query3 <- "
+select DepDelay, ArrDelay
+from Sairline
+where ArrDelay != 'NA'
+"
+
+system.time(data <- dbGetQuery(db, query3))
+```
+
+```{r DepArrDelay}
+set.seed(0)
+#Get a small data to examine the relationship between two variables
+data_sample <- data %>% sample_frac(0.01)
+g3 <- ggplot(data_sample, aes(x=DepDelay, y=ArrDelay)) + geom_point(shape=16, alpha=1/5) + coord_cartesian(xlim=c(-100, 500), ylim=c(-100, 500))
+
+hist1 <- ggplot(data_sample, aes(x=DepDelay)) + geom_histogram(aes(y=..density..), binwidth=5) + coord_cartesian(xlim=c(-100, 500)) 
+hist2 <- ggplot(data_sample, aes(x=ArrDelay)) + geom_histogram(aes(y=..density..), binwidth=5) + coord_cartesian(xlim=c(-100, 500)) + theme(axis.text.x = element_text(angle = 270, vjust=0.15)) + coord_flip()
+```
+
+```{r empty}
+#Create a empty plot
+empty <- ggplot()+geom_point(aes(1,1), colour="white") +
+     theme(                              
+       plot.background = element_blank(), 
+       panel.grid.major = element_blank(), 
+       panel.grid.minor = element_blank(), 
+       panel.border = element_blank(), 
+       panel.background = element_blank(),
+       axis.title.x = element_blank(),
+       axis.title.y = element_blank(),
+       axis.text.x = element_blank(),
+       axis.text.y = element_blank(),
+       axis.ticks = element_blank()
+)
+```
+
+```{r DepArrDelay_final, fig.height=6}
+grid.arrange(hist1, empty, g3, hist2, ncol=2, widths=c(4, 1.5), heights=c(1.5, 4))
+```
+
+```{r view23, eval=FALSE}
+view2 <- "
+create view destination as 
+select Dest, Count(*) as Count1
+from Sairline
+group by Dest
+"
+
+view3 <- "
+create view origin as 
+select Origin, Count(*) as Count2
+from Sairline
+group by Origin
+"
+
+dbSendQuery(db, view2); dbSendQuery(db, view3)
+
+#Check whether we successfully create view
+dbListTables(db)
+```
+
+## Airport traffic
+
+```{r query4}
+#Only get the airport appear both in destination and origin
+query4 <- "
+select Origin as airport, Count1, Count2
+from destination as d, origin as o
+where d.Dest = o.Origin"
+
+system.time(data <- dbGetQuery(db, query4))
+```
+
+```{r airportdata}
+airports <- read.csv("C:/Users/jason/Desktop/R/CLW_R_Learning/Jason Wang/airports.csv")
+
+#We only need the longitude, latitude
+airports <- airports[c('iata', 'country', 'lat', 'long')]
+names(airports)[1] <- "airport"
+
+#Merge two data set
+data <- merge(airports, data)
+
+#Keep the airport only in the USA
+data <- data %>% filter(country == "USA")
+
+#Create Categorical variable for small, medium, large airport
+data$Group1 <- cut(data$Count1, breaks=c(0, 50000, 200000, Inf), include.lowest=TRUE)
+levels(data$Group1) <- c("Small", "Medium", "Large")
+
+data$Group2 <- cut(data$Count1, breaks=c(0, 50000, 200000, Inf), include.lowest=TRUE)
+levels(data$Group2) <- c("Small", "Medium", "Large")
+```
+
+
+```{r mapArrival, fig.width=8}
+color <- c(Small="cornflowerblue", Medium="deepskyblue", Large="darkslateblue")
+breaks <- c(0, 5000, 10000, 50000, 100000, 200000, 300000, Inf)
+
+ggplot() + borders("state", size=0.5) + geom_point(data=data, aes(x=long, y=lat, size=Count1, color=Group1)) + scale_size_continuous("Number of Airplane", breaks=breaks, range=c(2, 12)) + scale_color_manual("Airport Size", values=color) + coord_cartesian(xlim=c(-130, -60), ylim=c(25, 50)) + labs(title="Number of Airplane Arrival")
+```
+
+```{r mapDeparture, fig.width=10}
+ggplot() + borders("state", size=0.5) + geom_point(data=data, aes(x=long, y=lat, size=Count2, color=Group2)) + scale_size_continuous("Number of Airplane", breaks=breaks, range=c(2, 12)) + scale_color_manual("Airport Size", values=color) + coord_cartesian(xlim=c(-130, -60), ylim=c(25, 50)) + labs(title="Number of Airplane Departure")
+```
+
+```{r query5}
+query5 <- "
+select Year, Dest, Origin, count(*) as Count  
+from Sairline
+group by Year, Dest, Origin
+"
+
+system.time(data <- dbGetQuery(db, query5))
+```
+
+```{r merge}
+#Get the longitude and latitude of Destination
+data <- merge(data, airports, by.x="Origin", by.y="airport")
+
+#Get the longitude and latitude of Origin
+data <- merge(data, airports, by.x="Dest", by.y="airport")
+
+head(data)
+```
+
+```{r clean}
+#Airflight within USA
+data <- data %>% filter(country.x == 'USA', country.y == 'USA')
+
+#Remove unneeded column
+data <- data[, c(1, 2, 3, 4, 6, 7, 9, 10)]
+
+data_O <- data[, c(-7, -8)] 
+names(data_O)[5:6] <- c("lat", "long")
+data_D <- data[, c(-5, -6)]
+names(data_D)[5:6] <- c("lat", "long")
+
+data <- rbind(data_O, data_D)
+
+#Add group
+data$group <- rep(1:(nrow(data)/2), 2)
+
+#Origin location
+head(data)
+```
+
+```{r doublecheck}
+#Destination location
+data[80735:80740, ]
+```
+
+```{r SFO, fig.width=10}
+SFO <- data %>% filter(Year == 1996, Origin == "SFO")
+
+ggplot() + borders("state", size=0.5) + geom_path(data=SFO, aes(x=long, y=lat, group=group, alpha=Count), color="red") + coord_cartesian(xlim=c(-130, -60), ylim=c(25, 50)) + labs(title="Flight departure from SFO to other airports") + theme_bw() + theme(legend.position="none")
+```
+
