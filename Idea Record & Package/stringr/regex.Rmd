@@ -1,0 +1,412 @@
+---
+title: "Regular expression in R"
+author: "Chih Hui(Jason) Wang"
+date: "November 8, 2015"
+output: 
+  html_document: 
+    keep_md: yes
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment='')
+knitr::opts_chunk$set(fig.align='center')
+```
+
+# Regular Expression (Basic)
+
+* Concatenation: a set of characters.
+* Logical OR: several pattern, use '|'.
+* Replication: repetition of pattern.
+* Grouping: expressions inside '()'.
+
+You can use `help(regex)` for more information. 
+
+1. Metacharacter
+
+`. \ | ( ) [ { $ * + ?`
+These special characters are reserved for other purposes. If you want to find a pattern with those characters including, you have to use double backslash(\\) in R to escape them.(In other languages, you can use single backslash(\) to escape them.)
+```{r metacharacter}
+s1 <- c("$123", "12466", "$12,345")
+
+#grep will return you the index of certain pattern
+#Give you all the word
+grep("$", s1)
+
+#Use double backslash to escape the $
+grep("\\$", s1)
+```
+
+2. Sequence
+
+Sequences of characters which can match.
+
+Expression | Description
+--- | ---
+\\d | match a digit character
+\\D | match a non-digit character
+\\s | match a space character
+\\S | match a non-space character
+\\w | match a word character
+\\W | match a non-word character
+\\b | match a word boundary
+\\B | match a non-(word boundary)
+\\h | match a horizontal space
+\\H | match a non-horizontal space
+\\v | match a vertical space
+\\V | match a non-vertical space
+
+```{r sequence1}
+s2 <- "2015/11/30 Sunnay day"
+
+#Substitute for digit
+gsub("\\d", "-", s2)
+
+#space
+gsub("\\s", "-", s2)
+
+#boundary
+gsub("\\b", "-", s2)
+```
+
+3. Character classes
+
+Expression | Description
+--- | ---
+[aeiou] | match any one lower case vowel
+[AEIOU] | match any one upper case vowel
+[0123456789] | match any digit
+[0-9] | match any digit (same as previous class)
+[a-z] | match any lower case ASCII letter
+[A-Z] | match any upper case ASCII letter
+[a-zA-Z0-9] | match any of the above classes
+[^aeiou] | match anything other than a lowercase vowel
+[^0-9] | match anything other than a digit
+
+```{r character}
+s3 <- "Banana and Apple"
+
+#vowel
+gsub("[ae]", "i", s3)
+
+#Not vowel
+gsub("[^ae]", "i", s3)
+```
+
+4. POSIX Character Classes
+
+Expression | Description
+--- | ---
+[[:lower:]] | Lower-case letters
+[[:upper:]] | Upper-case letters
+[[:alpha:]] | Alphabetic characters ([[:lower:]] and [[:upper:]])
+[[:digit:]] | Digits: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+[[:alnum:]] | Alphanumeric characters ([[:alpha:]] and [[:digit:]])
+[[:blank:]] | Blank characters: space and tab
+[[:cntrl:]] | Control characters
+[[:punct:]] | Punctuation characters: ! " # % & ' ( ) * + , - . / : ;
+[[:space:]] | Space characters: tab, newline, vertical tab, form feed, carriage return, and space
+[[:xdigit:]] | Hexadecimal digits: 0-9 A B C D E F a b c d e f
+[[:print:]] | Printable characters ([[:alpha:]], [[:punct:]] and space)
+[[:graph:]] | Graphical characters ([[:alpha:]] and [[:punct:]])
+
+```{r POSIX}
+gsub("[[:upper:]]", "U", s3)
+```
+
+5. Quantifiers
+
+Expression | Description
+--- | ---
+? | The preceding item is optional and will be matched at most once
+* | The preceding item will be matched zero or more times
++ | The preceding item will be matched one or more times
+{n} |  The preceding item is matched n times
+{n,} | The preceding item is matched n or more times
+{n,m} | The preceding item is matched at least n times, but not more than m times
+
+```{r quantifier}
+s4 <- c("Jasonaaa", "Sanlyy", "Oraclelll")
+
+grep("a{3}", s4)
+```
+
+### Demo example: mail box
+
+```{r data}
+data <- readLines("C:/Users/jason/Desktop/Python/mbox-short.txt")
+
+#We can find that there is some tab in some line 
+head(data)
+```
+
+#### Task1: Remove tab
+
+```{r removetab}
+data <- gsub("\t", "", data)
+
+#Notice the space does not remove
+head(data)
+```
+
+#### Task2: Remove line start by space
+
+```{r removespace}
+#For thsoe start with space, we remove the first space
+#Because some of line are start with many space, we write a while loop to deal with the problem
+while(any(grepl("^\\s", data))){
+  data[grep("^\\s", data)] <- sub("\\s", "", data[grep("^\\s", data)])
+}
+```
+
+#### A alternative way for previous two tasks
+```{r space}
+data2 <- readLines("C:/Users/jason/Desktop/Python/mbox-short.txt")
+
+while(any(grepl("^[[:space:]]", data2))){
+  data2[grep("^[[:space:]]", data2)] <- sub("^[[:space:]]", "", data2[grep("^[[:space:]]", data2)])
+}
+
+#Check whether they are equal
+all.equal(data, data2)
+```
+
+```{r tabline}
+#There is a tab in the middle of line
+grep("\t", data2)
+```
+
+```{r outputline}
+data2[grep("\t", data2)]
+```
+
+```{r removetab2}
+#Remove tab
+data2 <- gsub("\t", "", data2)
+
+#We are done!
+all.equal(data, data2)
+```
+
+```{r tail_data}
+#There are some line are non-character
+tail(data)
+```
+
+#### Task3: Remove unmeaningful line
+
+* Lines without not character
+* Lines start with non-character such as '----'
+
+```{r removeunmeaning}
+#Start with ---
+data[grep("^[[:punct:]]", data)]
+
+#We use gsub to remove all the line start with non-character
+while(any(grepl("^[[:punct:]]", data))){
+  data[grep("^[[:punct:]]", data)] <- sub("^[[:punct:]]", "", data[grep("^[[:punct:]]", data)])
+}
+
+tail(data)
+```
+
+Now we can remove those line without any single character
+```{r removenoword}
+data <- data[sapply(data, nchar) != 0]
+
+head(data)
+
+tail(data)
+```
+
+Now we can do some more interesting work!
+
+#### Task4 Find email address
+
+To find the email address, my strategy is first find out those line with @ which indicated that the line probably contain email address. Then I collapse those line into one string and seperate them by space. After that, I can search the @ sign again in those string to get the email. 
+```{r email}
+linemail <- paste(data[grep("@", data)], collapse=" ")
+
+#Sepearate by space, it will return list, so I unlist here
+string <- unlist(strsplit(linemail, " "))
+
+#It seems that it is not quite good
+#There are some annoying <, > and ; in the beginning and end email
+email <- string[grep("@", string)]
+head(email)
+```
+
+Let's do more processing to get email address. 
+
+```{r removesemicolon}
+email <- gsub("<|>|\\;", "", email)
+unique(email)
+```
+
+You can find out that there are still some line are actually not email such as dhorwitz@david-horwitz-6:~/branchManagemnt/sakai_2-5-x and 200801051412.m05ECIaH010327@nakamura.uits.iupui.edu.
+
+Now let's try to write a more complicated regular expression. Since the email is in the format abcd@efg.hijk, first I use `[[:alnum:]]` to get the combination of digit and alphabetic characters and combine with quantifier `+` which mean one or more character. After @ at sign, I use the group expression `()` to cover the pattern efg..
+
+```{r alnum}
+#You can also use grep("[[:alnum:]]+@([[:alnum:]]+\\.)+", email, value=TRUE)
+email <- email[grep("[[:alnum:]]+@([[:alnum:]]+\\.)+", email)]
+
+unique(email)
+```
+
+For the problem of 200801051412.m05ECIaH010327@nakamura.uits.iupui.edu, it probably should be dealed with by additional procedure.
+
+You can also use the gregexpr function to get the location of pattern. However, you have to be very careful about the data type of the object it return as well as the position it return. It give you a vector with attribute which you have to use `attributes` to retrieve the information. The following is the example:
+```{r other approach}
+location <- gregexpr("[[:alnum:]]+@([[:alnum:]]+\\.[[:alnum:]]+)+", linemail)[[1]]
+
+len <- unlist(attributes(location))[1:305]
+attributes(location) <- NULL
+
+email <- rep(0, length(location))
+for(i in 1:length(location)){
+  email[i] <- substr(linemail, location[i], location[i] + len[i] - 1)
+}
+
+unique(email)
+```
+
+#### Task5: Find the website link
+
+I use the `gregexpr` here again. The regular expression for website will be more complicated. I will divided them into several part to illustrate. First, `(http://|https://)` is searching for the beginning website. Second, `[[:alnum:]]+` is for combination for letters and digits. Third, `(\\.|=|\\&|-)?` is for the pattern of link. `.` is the basic website structure. For `=` and `&`, for example if you search something by the google engine. There will be some `=` and `&`. `-` is also another basic website structure. All of them are some patterns which some websites will not have, so I use quantifier `?` here to represent matches at most once. In the end, I put `/?\\??` which is for the pattern of `/` and `?` in some websites.
+
+```{r website}
+#get line contain website link first
+http <- paste(grep("http:|https:|www\\.", data, value=TRUE), collapse=" ")
+
+location <- gregexpr("(http://|https://)([[:alnum:]]+(\\.|=|\\&|-)?[[:alnum:]]+/?\\??)+", http)[[1]]
+
+len <- unlist(attributes(location))[1:75]
+attributes(location) <- NULL
+
+website <- rep(0, length(location))
+for(i in 1:length(location)){
+  website[i] <- substr(http, location[i], location[i] + len[i] - 1)
+}
+
+unique(website)
+```
+
+### A useful function
+
+`glob2rx` is a function that transform your pattern into regular expression. When you try to write some regular expression, you may want to try this function to facilitate your work speed.
+
+### Regular Expression Functions in R
+
+Function | Purpose | Characteristic
+--- | --- | ---
+grep() | finding regex matches | which elements are matched (index or value)
+grepl() | finding regex matches | which elements are matched (TRUE & FALSE)
+regexpr() | finding regex matches | positions of the first match
+gregexpr() | finding regex matches | positions of all matches
+regexec() | finding regex matches | hybrid of regexpr() and gregexpr()
+sub() | replacing regex matches | only first match is replaced
+gsub() | replacing regex matches | all matches are replaced
+strsplit() | splitting regex matches | split vector according to matches
+
+
+# Regular Expression (package: stringr)
+
+### Regex functions in stringr
+
+The following function all follow the structure `function_name(string, pattern)`
+
+Function | Description
+--- | ---
+str_detect() | Detect the presence or absence of a pattern in a string
+str_extract() | Extract first piece of a string that matches a pattern
+str_extract_all() | Extract all pieces of a string that match a pattern
+str_match() | Extract first matched group from a string
+str_match_all() | Extract all matched groups from a string
+str_locate() | Locate the position of the first occurence of a pattern in a string
+str_locate_all() | Locate the position of all occurences of a pattern in a string
+str_replace() | Replace first occurrence of a matched pattern in a string
+str_replace_all() | Replace all occurrences of a matched pattern in a string
+str_split() | Split up a string into a variable number of pieces
+str_split_fixed() | Split up a string into a fixed number of pieces
+
+```{r stringr}
+library(stringr)
+```
+
+```{r str_detect}
+s1 <- c("$123", "12466", "$12,345")
+
+#Use double backslash to escape the $
+str_detect(s1, "\\$")
+```
+
+```{r str_extract}
+s2 = c("12 Jun 2002", " 8 September 2004 ", "22-July-2009 ", "01 01 2001",
+       "date", "02.06.2000", "xxx-yyy-zzzz", "$2,600")
+
+str_extract(s2, "[0-9]{1,2}[- .][a-zA-Z]+[- .][0-9]{4}")
+```
+
+```{r str_match1}
+str_match(s2, "[0-9]{1,2}[- .][a-zA-Z]+[- .][0-9]{4}")
+```
+
+```{r str_match2}
+str_match(s2, "([0-9]{1,2})[- .]([a-zA-Z]+)[- .]([0-9]{4})")
+```
+
+```{r str_locate}
+s3 <- c("Jason", "Sanly", "Oracle")
+
+str_locate(s3, "a")
+```
+
+```{r str_replace}
+s3 <- c("Jason", "Sanly", "Oracle")
+
+str_replace(s3, "a", "aa")
+```
+
+```{r str_split}
+s5 <- c("R is a collaborative project with many contributors")
+
+str_split(s5, " ")
+```
+
+```{r str_split2}
+s6 <- c("chocolate", "vanilla", "cinnamon", "mint", "lemon")
+
+#Divide into only two seperate character
+str_split(s6, "[aeiou]", n=2)
+```
+
+```{r str_split_fixed}
+#Return matrix
+str_split_fixed(s6, "n", 2)
+```
+
+Now let's use those function to do the task4, 5 for email and website searching. I will try a different way to write the regular expression here. 
+
+```{r task4}
+data <- readLines("C:/Users/jason/Desktop/Python/mbox-short.txt")
+
+data <- str_replace_all(data, "(^\t )|(\t)|(^  +)|(^-+)", "")
+data <- data[nchar(data) != 0]
+
+head(data)
+```
+
+```{r email2}
+email <- str_extract_all(data, "([a-zA-Z0-9]+)@([a-zA-Z0-9\\.-]+)\\.[a-zA-Z0-9]+")
+
+unique(unlist(email))
+```
+
+```{r website2}
+website <- str_extract_all(data, "(http://|https://)([a-zA-Z0-9\\.\\&\\?/=\\-]+)")
+
+unique(unlist(website))
+```
+
+
+* Reference: [Handling and Processing Strings in R, Gaston Sanchez](www.gastonsanchez.com)
+* Data Resource: [mbox-short.txt](http://www.py4inf.com/code/mbox-short.txt) from PythonLearn.
