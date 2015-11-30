@@ -141,6 +141,11 @@ db &lt;- dbConnect(SQLite(), dbname=&quot;airline.db&quot;)
 l &lt;- 0 
 
 for(i in year){
+  #----- If you don't have unix in your computer try the below code -----
+  #in_file &lt;- paste(i, &quot;.csv.bz2&quot;, sep=&quot;&quot;)
+  #data &lt;- read.csv(bzfile(in_file))
+
+  #----- Otherwise just use the below code -----
   #Print message for reading
   cat(paste(&quot;Start reading data for&quot;, i, &quot;\n&quot;))
   
@@ -182,6 +187,12 @@ for(i in year){
   #Print message for reading
   cat(paste(&quot;Start reading data for&quot;, i, &quot;\n&quot;))
   
+  #----- If you don't have unix in your computer try the below code -----
+  #in_file &lt;- paste(i, &quot;.csv.bz2&quot;, sep=&quot;&quot;)
+  #data &lt;- read.csv(bzfile(in_file))
+
+  #----- Otherwise just use the below code -----
+  
   #Construct the command to read data
   #This is bash code for sequential unzip the data
   #which it will process through the data without
@@ -217,7 +228,7 @@ for(i in year){
 <p>After constructing the database, we can use <code>dbListTables</code> and <code>dbListFields</code> to examine the tables in the database and the fields for certain table</p>
 <pre class="r"><code>#Table in the airline database
 dbListTables(db)</code></pre>
-<pre><code>[1] &quot;Sairline&quot; &quot;airline&quot; </code></pre>
+<pre><code>[1] &quot;Sairline&quot;    &quot;airline&quot;     &quot;destination&quot; &quot;flight&quot;      &quot;origin&quot;     </code></pre>
 <pre class="r"><code>#Column name in airline
 dbListFields(db, &quot;Sairline&quot;)</code></pre>
 <pre><code> [1] &quot;Year&quot;              &quot;Month&quot;             &quot;DayofMonth&quot;       

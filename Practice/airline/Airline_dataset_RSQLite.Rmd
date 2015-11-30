@@ -1,7 +1,15 @@
-# Airline data (1987-2008)
-Chih Hui(Jason) Wang  
-November 15, 2015  
-
+---
+title: "Airline data (1987-2008)"
+author: "Chih Hui(Jason) Wang"
+date: "November 15, 2015"
+output: 
+  html_document: 
+    keep_md: yes
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment='')
+knitr::opts_chunk$set(fig.align='center')
+```
 
 
 In this intro, I will demonstrate the code in R to download the airline datasets, which can be find on [ASA Website](http://stat-computing.org/dataexpo/2009/the-data.html).
@@ -9,8 +17,7 @@ In this intro, I will demonstrate the code in R to download the airline datasets
 ### 1. Create Directory for Data
 
 First of all, we have to create a directory for storing our airline dataset.
-
-```r
+```{r directory, eval=FALSE}
 #Make directory called Airline
 if(dir.exists("Airline")){
   warning("You have already Airline directory in your current working directory")
@@ -19,8 +26,7 @@ if(dir.exists("Airline")){
 }
 ```
 
-
-```r
+```{r change}
 #Change your current directory
 setwd("Airline")
 ```
@@ -28,8 +34,7 @@ setwd("Airline")
 ### 2. Download Airline Data
 
 Now we can download our data. We will download the data from 1987 to 2008. It takes about half of hour to finished the download.
-
-```r
+```{r download, eval=FALSE}
 #You can change directory first before downloading
 year <- 1987:2008
 
@@ -46,22 +51,9 @@ for(i in year){
 }
 ```
 
-
-```r
+```{r check}
 #Check whether all the file are correctly download
 list.files("C:/Users/jason/Documents/Airline")
-```
-
-```
- [1] "1987.csv.bz2" "1988.csv.bz2" "1989.csv.bz2" "1990.csv.bz2"
- [5] "1991.csv.bz2" "1992.csv.bz2" "1993.csv.bz2" "1994.csv.bz2"
- [9] "1995.csv.bz2" "1996.csv.bz2" "1997.csv.bz2" "1998.csv.bz2"
-[13] "1999.csv.bz2" "2000.csv.bz2" "2001.csv.bz2" "2002.csv.bz2"
-[17] "2003.csv.bz2" "2004.csv.bz2" "2005.csv.bz2" "2006.csv.bz2"
-[21] "2007.csv.bz2" "2008.csv.bz2" "airline.db"  
-```
-
-```r
 #You can directly use list.files()
 ```
 
@@ -70,35 +62,10 @@ list.files("C:/Users/jason/Documents/Airline")
 
 With data, we can start to construct our database. We will use `data.table`, `RSQLite` later. If you do not have those packages. You can use `install.package(package_name)` to install them.
 
-
-```r
+```{r package}
 library(data.table)
 library(RSQLite)
-```
-
-```
-Loading required package: DBI
-```
-
-```r
 library(dplyr)
-```
-
-```
-
-Attaching package: 'dplyr'
-
-The following objects are masked from 'package:data.table':
-
-    between, last
-
-The following objects are masked from 'package:stats':
-
-    filter, lag
-
-The following objects are masked from 'package:base':
-
-    intersect, setdiff, setequal, union
 ```
 
 To create database, first we have to open a connection to an empty database. There are several ways to import table into database. Here I first read the data into R, remove the row which DepDelay is NA and use `dbWriteTable` to write data into the database. With argument `append=TRUE`, I can append the data one by one into database. It also takes about 30 minutes to create the database.
@@ -106,8 +73,7 @@ To create database, first we have to open a connection to an empty database. The
 The alternative way is to unzip all the file and then directly write the csv file into database. 
 
 ### Complete Database
-
-```r
+```{r database, eval=FALSE}
 #Create database connection
 db <- dbConnect(SQLite(), dbname="airline.db")
 
@@ -150,8 +116,7 @@ for(i in year){
 
 It takes about 10 minute to create this sample database.
 
-
-```r
+```{r database2, eval=FALSE}
 #Set seed
 set.seed(0)
 
@@ -208,34 +173,16 @@ _For the following demonstration, we will use the small database._
 
 After constructing the database, we can use `dbListTables` and `dbListFields` to examine the tables in the database and the fields for certain table
 
+```{r connection, include=FALSE}
+db <- dbConnect(SQLite(), dbname="Airline/airline.db")
+```
 
-
-
-```r
+```{r dbList}
 #Table in the airline database
 dbListTables(db)
-```
 
-```
-[1] "Sairline"    "airline"     "destination" "flight"      "origin"     
-```
-
-```r
 #Column name in airline
 dbListFields(db, "Sairline")
-```
-
-```
- [1] "Year"              "Month"             "DayofMonth"       
- [4] "DayOfWeek"         "DepTime"           "CRSDepTime"       
- [7] "ArrTime"           "CRSArrTime"        "UniqueCarrier"    
-[10] "FlightNum"         "TailNum"           "ActualElapsedTime"
-[13] "CRSElapsedTime"    "AirTime"           "ArrDelay"         
-[16] "DepDelay"          "Origin"            "Dest"             
-[19] "Distance"          "TaxiIn"            "TaxiOut"          
-[22] "Cancelled"         "CancellationCode"  "Diverted"         
-[25] "CarrierDelay"      "WeatherDelay"      "NASDelay"         
-[28] "SecurityDelay"     "LateAircraftDelay"
 ```
 
 ### 4. Query
@@ -245,22 +192,15 @@ dbListFields(db, "Sairline")
 First, you can use the SQL syntax and the function `dbGetQuery` in DBI package, which will automatically library when you library RSQLite,  to pull out the information you want from database.
 
 Here we use _count(*)_ to count the row number in the airline dataset.
-
-```r
+```{r query}
 query_count <- "select count(*) as Count from Sairline" 
 dbGetQuery(db, query_count)
-```
-
-```
-     Count
-1 12123284
 ```
 
 Also, you can use another function `dbSendQuery` combined with `fetch` to pull out the data. It will be very convenient if you just want to pull out the beginning of the data. When you use `dbSendQuery`, the database will receive your query and wait for the instruction from you. Then you can use `fetch` to retrieve the query result. 
 
 (Note: You probably do not want to pull everything back to your R which probably will crash your R because of the massive memory use.)
-
-```r
+```{r query2}
 query_data <- "select * from Sairline"
 
 #Send the query while not fetch any data back
@@ -270,108 +210,38 @@ fulldata <- dbSendQuery(db, query_data)
 fetch(fulldata, n=3)
 ```
 
-```
-  Year Month DayofMonth DayOfWeek DepTime CRSDepTime ArrTime CRSArrTime
-1 1987    12         17         4    1306       1305    1337       1339
-2 1987    10          3         6     832        800     947        914
-3 1987    11          9         1     832        830     940        940
-  UniqueCarrier FlightNum TailNum ActualElapsedTime CRSElapsedTime AirTime
-1            PS      1832      NA                31             34      NA
-2            PS      1906      NA                75             74      NA
-3            PS      1457      NA                68             70      NA
-  ArrDelay DepDelay Origin Dest Distance TaxiIn TaxiOut Cancelled
-1       -2        1    SFO  MRY       77     NA      NA         0
-2       33       32    SFO  LAX      337     NA      NA         0
-3        0        2    LAX  SFO      337     NA      NA         0
-  CancellationCode Diverted CarrierDelay WeatherDelay NASDelay
-1               NA        0           NA           NA       NA
-2               NA        0           NA           NA       NA
-3               NA        0           NA           NA       NA
-  SecurityDelay LateAircraftDelay
-1            NA                NA
-2            NA                NA
-3            NA                NA
-```
-
 You can keep fetching next 3 observations like the way previous code. When you finish your work, you have to clear the connection between database.
 
-
-```r
+```{r clear}
 #Clear the connection
 dbClearResult(fulldata)
-```
-
-```
-[1] TRUE
 ```
 
 #### b. dplyr
 
 In dplyr, you can write the query in a more R way (not SQL syntax). You have to use `src_sqlite` to connect the database and `tbl` to get the airline data. Then, you can start write the code to pull out information you want to search.
+```{r dplyr1, message=FALSE, include=FALSE}
+#Open connection to database
+flight <- src_sqlite("Airline/airline.db")
+```
 
-
-
-```r
+```{r dplyr, eval=FALSE}
 library(dplyr)
 
 #Open connection to database
 flight <- src_sqlite("Airline/airline.db")
 ```
 
-
-```r
+```{r tbl}
 #Connection to our airline table
 airline <- tbl(flight, "Sairline")
 
 airline %>% head()
 ```
 
-```
-  Year Month DayofMonth DayOfWeek DepTime CRSDepTime ArrTime CRSArrTime
-1 1987    12         17         4    1306       1305    1337       1339
-2 1987    10          3         6     832        800     947        914
-3 1987    11          9         1     832        830     940        940
-4 1987    11         20         5    1748       1738    1817       1800
-5 1987    12          9         3     636        635     742        735
-6 1987    10          3         6    1231       1230    1324       1327
-  UniqueCarrier FlightNum TailNum ActualElapsedTime CRSElapsedTime AirTime
-1            PS      1832      NA                31             34      NA
-2            PS      1906      NA                75             74      NA
-3            PS      1457      NA                68             70      NA
-4            PS      1831      NA                89             82      NA
-5            PS      1851      NA               126            120      NA
-6            PS      1807      NA                53             57      NA
-  ArrDelay DepDelay Origin Dest Distance TaxiIn TaxiOut Cancelled
-1       -2        1    SFO  MRY       77     NA      NA         0
-2       33       32    SFO  LAX      337     NA      NA         0
-3        0        2    LAX  SFO      337     NA      NA         0
-4       17       10    TUS  LAX      451     NA      NA         0
-5        7        1    PHX  SFO      651     NA      NA         0
-6       -3        1    LAX  SJC      308     NA      NA         0
-  CancellationCode Diverted CarrierDelay WeatherDelay NASDelay
-1               NA        0           NA           NA       NA
-2               NA        0           NA           NA       NA
-3               NA        0           NA           NA       NA
-4               NA        0           NA           NA       NA
-5               NA        0           NA           NA       NA
-6               NA        0           NA           NA       NA
-  SecurityDelay LateAircraftDelay
-1            NA                NA
-2            NA                NA
-3            NA                NA
-4            NA                NA
-5            NA                NA
-6            NA                NA
-```
-
 It will return `data.frame` to you.
-
-```r
+```{r class}
 class(airline %>% head())
-```
-
-```
-[1] "data.frame"
 ```
 
 Useful function
@@ -384,8 +254,7 @@ Useful function
 * arrange: sort the data increasingly or decreasingly
 
 The following are two examples:
-
-```r
+```{r demo}
 #Compute the proportion of more than 30 minutes delay flight for each combination of airline, month, dayofweek, origin, dest
 airline %>%
   group_by(UniqueCarrier, Origin, Dest, Month, DayofWeek) %>%
@@ -395,59 +264,10 @@ airline %>%
   head()
 ```
 
-```
-  UniqueCarrier Origin Dest Month DayofWeek late_proportion
-1            9E    ALB  DTW     2         4               1
-2            9E    ALB  MSP     6         3               1
-3            9E    ALB  MSP     7         1               1
-4            9E    ATL  BNA    12         4               1
-5            9E    ATL  BUF     5         3               1
-6            9E    ATL  GSP     1         4               1
-```
-
-
-```r
+```{r demo2}
 airline %>%
   filter(Year == 2008, Dest == 'SFO', Origin == 'LAX') %>%
   head()
-```
-
-```
-  Year Month DayofMonth DayOfWeek DepTime CRSDepTime ArrTime CRSArrTime
-1 2008     4         27         7    1900       1900    2015       2025
-2 2008     7          3         4    2003       2005    2109       2120
-3 2008     1         22         2    1338       1235    1444       1400
-4 2008    11         23         7    1808       1810    1914       1925
-5 2008     8          3         7    1645       1645    1746       1800
-6 2008     5         18         7     914        905    1019       1020
-  UniqueCarrier FlightNum TailNum ActualElapsedTime CRSElapsedTime AirTime
-1            WN       344  N227WN                75             85      58
-2            WN      2172  N326SW                66             75      52
-3            WN        70  N300SW                66             85      52
-4            WN      2781  N481WN                66             75      54
-5            WN      3832  N414WN                61             75      51
-6            WN      3511  N510SW                65             75      53
-  ArrDelay DepDelay Origin Dest Distance TaxiIn TaxiOut Cancelled
-1      -10        0    LAX  SFO      337      4      13         0
-2      -11       -2    LAX  SFO      337      7       7         0
-3       44       63    LAX  SFO      337      5       9         0
-4      -11       -2    LAX  SFO      337      3       9         0
-5      -14        0    LAX  SFO      337      4       6         0
-6       -1        9    LAX  SFO      337      5       7         0
-  CancellationCode Diverted CarrierDelay WeatherDelay NASDelay
-1                         0           NA           NA       NA
-2                         0           NA           NA       NA
-3                         0            0            0       43
-4                         0           NA           NA       NA
-5                         0           NA           NA       NA
-6                         0           NA           NA       NA
-  SecurityDelay LateAircraftDelay
-1            NA                NA
-2            NA                NA
-3             0                 1
-4            NA                NA
-5            NA                NA
-6            NA                NA
 ```
 
 
