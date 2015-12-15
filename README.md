@@ -6,5 +6,4 @@
 
 Topics may consider to add:
 * Web Scraping
-* Map visualization
-* Package
+* Package: rCharts, googleVis, plotly
