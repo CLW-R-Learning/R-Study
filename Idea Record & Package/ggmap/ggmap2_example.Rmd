@@ -78,7 +78,7 @@ grid.arrange(stamen_toner,
              ncol=3)
 ```
 
-# ggmap(like the qplot in ggplot2)
+# ggmap(like the ggplot in ggplot2)
 
 As we saw above, the `qmap` is actually combine two-steps. First, we have to download the data. Second, we use `ggmap` to plot the data, which it uses the function in ggplot2 to make the plot.    
 According to the introduction(see Reference), it will make the plot by

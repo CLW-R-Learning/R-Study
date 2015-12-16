@@ -87,7 +87,7 @@ grid.arrange(stamen_toner,
 
 <img src="ggmap2_example_files/figure-html/stamen-1.png" title="" alt="" style="display: block; margin: auto;" />
 
-# ggmap(like the qplot in ggplot2)
+# ggmap(like the ggplot in ggplot2)
 
 As we saw above, the `qmap` is actually combine two-steps. First, we have to download the data. Second, we use `ggmap` to plot the data, which it uses the function in ggplot2 to make the plot.    
 According to the introduction(see Reference), it will make the plot by
@@ -198,7 +198,7 @@ geocodeQueryCheck()
 ```
 
 ```
-2499 geocoding queries remaining.
+2500 geocoding queries remaining.
 ```
 
 You can check the loctype to see the precision of the result. It divides into `rooftop` and `approximate`.
