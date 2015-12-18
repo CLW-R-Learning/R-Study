@@ -1,6 +1,7 @@
-# Idea_Record
+# R Package
 
-Some Topics about R package
 * Data Manipulation: dplyr, reshape2
-* Data Visualization: ggplot2
+* Data Visualization: ggplot2, ggmap
 * String process & Regular Expression: stringr
+
+* Coming soon: googleVis, plotly, slidify
