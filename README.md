@@ -4,6 +4,6 @@
 
 ### 2016
 
-Topics may consider to add:
+Topics consider to add:
 * Web Scraping
 * Package: rCharts, googleVis, plotly
