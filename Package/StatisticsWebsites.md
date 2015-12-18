@@ -26,7 +26,7 @@
 * [Forrester](http://blogs.forrester.com/category/big_data)
 
 ---
-
+ 
 #News
 
 * [Oreilly](http://www.oreilly.com/)
