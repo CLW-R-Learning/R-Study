@@ -2,6 +2,6 @@
 
 * Data Manipulation: dplyr, reshape2
 * Data Visualization: ggplot2, ggmap
+* Interactive plot: googleVis, plotly
 * String process & Regular Expression: stringr
-
-* Coming soon: googleVis, plotly, slidify
+* Coming soon: slidify, rvest
