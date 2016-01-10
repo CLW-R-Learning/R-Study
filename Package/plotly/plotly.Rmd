@@ -1,0 +1,205 @@
+---
+title: "plotly"
+author: "Chih Hui(Jason) Wang"
+date: "December 17, 2015"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment='')
+knitr::opts_chunk$set(fig.align='center')
+```
+
+```{r package, message=FALSE}
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(maps)
+```
+
+```{r setwd, include=FALSE}
+setwd("C:/Users/jason/Desktop/R/CLW_R_Learning/Jason Wang/Interactive Graph")
+```
+
+# plotly basic
+
+# Line chart and Scatter plot
+
+In general, `plot_ly` is really similar to the original `plot` function in the **graphics** package. You can specify the color, size and `mode` (like `pch` in the `plot`). To give a title and name of x- and y-axis, you can use `%>%` notation and `layout` to organize those elements.
+```{r mtcars}
+mtcars$am <- as.factor(mtcars$am)
+p <- plot_ly(mtcars, x=wt, y=mpg,
+             color=am, colors=c("#1E90FF", "#FF8C00"),
+             mode='markers') %>%
+     layout(title="Mile per gallon v.s. Weight",
+            xaxis=list(title="weight"),
+            yaxis=list(title="MPG"))
+p
+```
+
+In this mtcars data, each row is one of the car brand and type. We can use `text` to add each name. Then, you can see the value as well as the name of that car in the same time.
+
+```{r mtcars2}
+p <- plot_ly(mtcars, x=wt, y=mpg,
+             text=rownames(mtcars),
+             color=am, colors=c("#1E90FF", "#FF8C00"),
+             mode='markers') %>%
+     layout(title="Mile per gallon v.s. Weight",
+            xaxis=list(title="weight"),
+            yaxis=list(title="MPG"))
+
+p
+```
+
+It is a nice tool to visualize stock data. When your mouse moves to the plot, it will automatically show the information about the corresponding points.
+
+```{r SP500}
+SP <- read.csv("C:/Users/jason/Desktop/R/CLW_R_Learning/Jason Wang/Interactive Graph/SP500.csv",
+               stringsAsFactors=FALSE)
+
+SP$Date <- as.Date(SP$Date)
+
+p <- SP %>%
+  plot_ly(x=Date, y=Close, mode="markers+lines") %>%
+  layout(title="S&P500 trend, 2014-2015",
+         yaxis=list(title="Close price"))
+
+p
+```
+
+It can also help you add your fitted line on the plot. (Check `?loess` for the Local Polynomial Regression) Again, `%>%` notation make your code very neat and easily understandable.
+
+```{r SP500fitline}
+m <- loess(Close ~ as.numeric(Date), data = SP)
+p <- SP %>%
+  plot_ly(x=Date, y=Close) %>%
+  add_trace(y=fitted(m)) %>%
+  layout(title="S&P500 trend, 2014-2015",
+         yaxis=list(title="Close price"),
+         showlegend=F)
+
+p
+```
+
+# ggplot with plotly
+
+If you are a big fan of **ggplot2** package, you probably will be very happy. Because with only one command, you can transform your ggplot2 object into a plotly object. You don't even have to add anything. Just use `ggplotly` to your plot and then you're done!
+```{r ggplot2}
+SP <- read.csv("SP500.csv", stringsAsFactors=FALSE)
+SP$Date <- as.Date(SP$Date)
+
+g <- ggplot(SP, aes(x=Date, y=Close)) + geom_line() + geom_point(size=1)
+p <- ggplotly(g)
+p
+```
+
+[See more line chart examples in the documentation of the plotly's official website.](https://plot.ly/r/line-and-scatter/) 
+
+# Bar Chart
+
+For bar chart, you have to compute the total number in each category first and then put it into argument y. 
+```{r diamonds}
+diamonds %>% count(cut) %>%
+  plot_ly(x=cut, y=n, type="bar") %>%
+  layout(title="Quanlity of Diamonds Cut",
+         xaxis=list(title="Quality"),
+         yaxis=list(title="Number"))
+```
+
+[See more bart chart examples in the documentation of the plotly's official website.](https://plot.ly/r/bar-charts/) 
+
+# Histogram
+
+To me, it is quite unflexible to make a histogram in **plotly**. I don't find any argument can change the yaxis into density scale. Therefore, when I want to plot the theoretical line on it, the line will be too flat due to the scale. 
+```{r histogram}
+plot_ly(x=rnorm(100), type="histogram")
+```
+
+# Boxplot
+
+You can make both horizontal and vertical boxplot by changing x or y. The boxplot in **boxplot** will give you the five number statistics when you point to the boxplot. 
+```{r boxplot}
+#Horizontal
+plot_ly(x=rnorm(100), type="box")
+
+#Vertical
+plot_ly(y=rnorm(100), type="box")
+```
+
+You can try different values for each argument and see what their effects are to the boxplot.
+
+```{r boxplot2}
+plot_ly(y = rnorm(50), type="box", boxpoints="all", jitter=0.3, pointpos=-1.8)
+```
+[See more boxplot examples in the documentation of the plotly's official website.](https://plot.ly/r/box-plots/)
+
+#Error Bars
+
+The error bars in **plotly** is really nice. You provided mean and standard deviation. It will show you a clear information about those value when you point to each bar.
+```{r errorbars}
+mpg %>%
+  group_by(class) %>%
+  summarise(mn=mean(hwy), sd=1.96*sd(hwy)) %>%
+  arrange(desc(mn)) %>%
+  plot_ly(x=class, y=mn, error_y=list(value=sd),
+          mode="markers", name="Highway") %>%
+  layout(yaxis=list(title="Miles Per Gallon"))
+```
+[See more error bars examples in the documentation of the plotly's official website.](https://plot.ly/r/error-bars/) 
+
+#Heat Maps
+
+It is quite convenient to create heat maps in **plotly**. You don't have change the data format into the long format (one column for row position, another column for column position and the other column for value). Just put into the matrix and you will get the result. 
+Notice that in the iris example, it will automatically transform the data into numeric (0, 1, 2, 3), which make the visualization not the same as the correlation matrix. There may be some way to fix it, but I have not found it. 
+```{r heatmaps}
+cor_matrix <- cor(iris[, -5])
+plot_ly(z=cor_matrix, colorscale="Greens", type="heatmap")
+```
+
+```{r volcano}
+plot_ly(z = volcano, type="heatmap")
+```
+
+[See more heat maps examples in the documentation of the plotly's official website.](https://plot.ly/r/heatmaps/) 
+
+# Map
+
+There are lots of things you can customize in the **plotly** map. You probably have to check out their documentation for more detailed information. It really shows a nice interaction with the user. If you want to create some cool application about maps, you should try it! However, if you just want to visualize some information on the map, I recommend you to check **ggmap** package which have a nice integration with **ggplot2**. (Or you can use `ggplotly` function to transform the object.)
+```{r map}
+g <- list(
+  scope='usa',
+  projection=list(type='albers usa'),
+  showland=TRUE,
+  landcolor=toRGB("gray85"),
+  subunitwidth=1,
+  countrywidth=1,
+  subunitcolor=toRGB("white"),
+  countrycolor=toRGB("white")
+)
+
+#Data in map library
+us.cities %>%
+  filter(capital == 2) %>%
+  mutate(pop_thousand=pop/1000) %>%
+  plot_ly(lon=long, lat=lat, text=paste(name, country.etc),
+          marker=list(size=sqrt(pop_thousand)),
+          type="scattergeo",
+          locationmode='USA-states') %>%
+  layout(title="Population in major city in the US",
+         geo=g)
+```
+[See more maps examples in the documentation of the plotly's official website.](https://plot.ly/r/#maps)
+
+# Surface plot
+
+It is a nice visualization of surface plot. When you point the plot, it will give you the value of x, y and z. Also, you can zoom in, zoom out or move the plot and inspect it in any angle. It may be a nice tool when you want to encounter the optimization problem. You can use it to visualize the target function and choose a better initial point of your optimization algorithm.
+```{r surface}
+plot_ly(z=volcano, type="surface")
+```
+
+[See more surface polt examples in the documentation of the plotly's official website.](https://plot.ly/r/3d-surface-plots/)
+
+# Reference
+* [plotly's official website](https://plot.ly/)
