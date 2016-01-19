@@ -1,0 +1,202 @@
+---
+title: "NBA"
+author: "Chih Hui(Jason) Wang"
+date: "December 16, 2015"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment='')
+knitr::opts_chunk$set(fig.align='center')
+```
+
+```{r package, message=FALSE}
+library(dplyr)
+library(googleVis)
+op <- options(gvis.plot.tag='chart')
+```
+
+```{r setwd}
+setwd('C:/Users/jason/Desktop/R/CLW_R_Learning/Jason Wang/Practice/NBA/Data')
+```
+
+```{r, results='asis'}
+glossary <- read.csv('glossary.csv', stringsAsFactors=FALSE)
+NBAT <- gvisTable(glossary)
+plot(NBAT)
+```
+
+```{r dataprocess, eval=FALSE}
+#Remove the note for eFG%
+colname <- glossary[-19, 1]
+colname[14] <- '3P%'
+colname[17] <- '2P%'
+
+#Get the filename
+filenames <- grep("NBA[0-9]{4}.csv", list.files(), value=TRUE)
+
+
+all <- NULL
+#Read and process file
+for(file in filenames){
+  data <- read.csv(file, header=TRUE, col.names=colname,
+                   stringsAsFactors=FALSE)
+  #Remove header and the player team TOT
+  #TOT is the total of player perfromance
+  #if the player had switched team in that season
+  data <- data %>%
+            filter(Rk != 'Rk', Tm != 'TOT') %>%
+            mutate(Year=substr(file, 4, 7))
+  
+  if(is.null(all)){
+    all <- data
+  }else{
+    all <- rbind(all, data)
+  }
+}
+
+write.csv(all, 'NBAall.csv', row.names=FALSE)
+NBA <- all
+```
+
+```{r data}
+NBA <- read.csv('NBAall.csv', stringsAsFactors=FALSE)
+head(NBA)
+```
+
+```{r team, results='asis'}
+team <- c("NBA", rep("EAST", 3), rep("WEST", 3),
+          rep("ATLANTIC", 5), rep("CENTRAL", 5), rep("SOUTHEAST", 5),
+          rep("PACIFIC", 5), rep("SOUTHWEST", 5), rep("NORTHWEST", 5),
+          "BOS", "BRK", "NYU", "PHI", "TOR",
+          "CHI", "CLE", "DET", "IND", "MIL",
+          "ATL", "MIA", "ORL", "WAS", "CHA",
+          "GSE", "LAC", "LAL", "PHO", "SAC",
+          "NOP", "DAL", "HOU", "SAS", "MEM",
+          "DEN", "MIN", "POR", "OKC", "UTA"
+)
+
+parent <- c(NA, rep("NBA", 6), rep("EAST", 15), rep("WEST", 15),
+            rep("ATLANTIC", 5), rep("CENTRAL", 5), rep("SOUTHEAST", 5),
+            rep("PACIFIC", 5), rep("SOUTHWEST", 5),
+            rep("NORTHWEST", 5))
+
+division <- data.frame(Team=team, Parent=parent, Val=1:length(team))
+
+org <- gvisOrgChart(division,
+                    options=list(
+                      width=1400,
+                      height=1200,
+                      size='small',
+                      allowCollapse=TRUE
+                    ))
+
+plot(org)
+```
+
+
+```{r ctable, results='asis'}
+C <- NBA %>% filter(Pos == "C") %>%
+      group_by(Player) %>%
+      summarise(FT=sum(FT), ORB=sum(ORB), DRB=sum(DRB),
+                BLK=sum(BLK), TOV=sum(TOV), PTS=sum(PTS))
+
+Ctable <- gvisTable(C, formats=list(PTS="#,###"),
+                    options=list(page="enable"))
+
+plot(Ctable)
+```
+
+
+```{r summary, results='asis'}
+pos_summary <- NBA %>%
+                filter(Year > 2010) %>%
+                group_by(Pos, Year) %>%
+                summarise(ORB=sum(ORB), DRB=sum(DRB),
+                          AST=sum(AST), STL=sum(STL),
+                          BLK=sum(BLK), TOV=sum(TOV),
+                          PTS=sum(PTS))
+
+bubble <- gvisBubbleChart(pos_summary, idvar="Pos",
+                          xvar="AST", yvar="DRB",
+                          colorvar="Year", sizevar="PTS",
+                          options=list(
+                            width=800,
+                            height=500,
+                            vAxis="{title:'Defensive Rebound'}", 
+                            hAxis="{title:'Assist'}",
+                            sizeAxis="{minValue:29000, maxSize:20}"
+                          ))
+
+plot(bubble)
+```
+
+```{r pghist, results='asis'}
+allpg <- NBA %>% filter(Pos == 'PG') %>%
+          group_by(Player) %>%
+          summarise(AST=sum(AST))
+
+pghist <- gvisHistogram(allpg,
+                        options=list(
+                          width=800,
+                          height=500,
+                          colors="['#5C3292', '#1A8763', '#871B47']"
+                        ))
+
+plot(pghist)
+```
+
+
+```{r pg, results='asis'}
+pg <- c('Stephen Curry', 'Chris Paul', 'Russell Westbrook',
+            'John Wall', 'Kyrie Irving')
+
+famouspg <- NBA %>% filter(Player %in% pg)
+#Interested column
+interest <- c('Player', 'G', 'MP', 'FG', 'FGA', 'X3P', 'X3PA',
+              'AST', 'STL', 'TOV', 'PTS', 'Year')
+
+famouspg <- famouspg[interest]
+
+M1 <- gvisMotionChart(famouspg, idvar="Player", timevar="Year", xvar="AST", yvar="PTS")
+
+plot(M1)
+```
+
+```{r sf, results='asis'}
+sf <- c('James Harden', 'Kevin Durant', 'LeBron James',
+            'Jimmy Butler', 'Paul George')
+
+famoussf <- NBA %>% filter(Player %in% sf)
+#Interested column
+interest <- c('Player', 'G', 'MP', 'FG', 'FGA', 'X3P', 'X3PA',
+              'ORB', 'DRB', 'AST', 'STL', 'TOV', 'PTS', 'Year')
+
+famoussf <- famoussf[interest]
+
+M2 <- gvisMotionChart(famoussf, idvar="Player", timevar="Year", xvar="AST", yvar="PTS")
+
+plot(M2)
+```
+
+```{r c, results='asis'}
+C <- c('Anthony Davis', 'Kevin Love', 'Dwight Howard',
+            'Marc Gasol', 'DeMarcus Cousins')
+
+famousc <- NBA %>% filter(Player %in% C)
+#Interested column
+interest <- c('Player', 'G', 'MP', 'FG', 'FGA', 'X3P', 'X3PA',
+              'ORB', 'DRB', 'AST', 'BLK', 'TOV', 'PTS', 'Year')
+
+famousc <- famousc[interest]
+
+M3 <- gvisMotionChart(famousc, idvar="Player", timevar="Year", xvar="ORB", yvar="PTS")
+
+plot(M3)
+```
+
+
+* Reference    
+[googleVis Example](https://cran.r-project.org/web/packages/googleVis/vignettes/googleVis_examples.html)
