@@ -58,7 +58,7 @@ pairs(mtcars[, -c(2, 3, 5, 7, 8, 9, 10)], col=mtcars$am + 1)
 #Correlation
 round(cor(mtcars[, -c(2, 3, 5, 7, 8, 9, 10)]), 4)
 ```
-　For view purpose, I round the correlation to 4 digit. hp and wt, as well as hp and carb, have high correlation. Again, it manifests that we should worried about the **multicollinearity problem**. Later, we will fit a model on mpg with variables, hp, wt, vs, am and carb. So far, we will not consider any interaction term.
+　For view purpose, I round the correlation to 4 digits. hp and wt, as well as hp and carb, have the high correlation. Again, it manifests that we should worry about the **multicollinearity problem**. Later, we will fit a model on mpg with variables, hp, wt, vs, am and carb. So far, we will not consider any interaction term.
 
 #Fit Model
 ```{r}
@@ -70,7 +70,7 @@ m1 <- lm(mpg ~ hp + wt + vs + am + carb, data=mtcars)
 summary(m1)
 ```
 
-We can find that the adjusted R-squared $R_{a}^2$ = 1 - $\frac{\frac{SSE}{n - p}}{\frac{SSTO}{n - 1}}$ is `r round(summary(m1)$adj.r.square, 4)`. Our model have quite a nice explain ability on our dependent variable mpg(miles per gallon.) However, interestingly, it seems that no all the variables are highly significant in the model. This will be a problem that we should deal with later. So, first, let's come to two test, overall test and marginal test:
+We can find that the adjusted R-squared $R_{a}^2$ = 1 - $\frac{\frac{SSE}{n - p}}{\frac{SSTO}{n - 1}}$ is `r round(summary(m1)$adj.r.square, 4)`. Our model has quite a nice explainability on our dependent variable mpg(miles per gallon.) However, interestingly, it seems that no all the variables are highly significant in the model. This will be a problem that we should deal with later. So, first, let's come to two test, overall test and marginal test:
 
 \begin{center}
 $H_{0}$ : $\beta_{1}$ = $\beta_{2}$ = $\cdots$ = $\beta_{k}$ = 0\\
@@ -88,7 +88,7 @@ $H_{1}$ : $\beta_{i}$ $\neq$ 0
 
 For marginal test, we take hp as an example. We can compute the t-statistic = $\frac{b_{hp}}{sd(b_{hp})}$ = `r round(coef(summary(m1))[2, 3], 2)` < $t_{0.05, 30}$. Hence, we reject $H_{0}$ which implied that when other variables exist in the model, hp(Horse power) can be removed. However, in the previous graph, we indeed observed there is a linear relationship between both variables. Here come the problem, *Multicollinearity*.(Note that the t-test here can be replaced by F-test because $(t_{n - p})^2$ = $F_{(1, n - p)}$. However, F-test only does one-tail test, not two-tail.)
 
-Before we deal with the **multicollinearity**, we explore more on the problem of testing. Actually, we can test multiple in one times. We generalize all the test below:
+Before we deal with the **multicollinearity**, we explore more on the problem of testing. Actually, we can test multiple in one time. We generalize all the test below:
 
 \begin{center}
 $H_{0}$ : Reduced model (less variables)\\
@@ -123,13 +123,13 @@ _1. Multicollinearity_
 
 We use VIF(Variance Inflation Factor) to detect that whether there is multicollinearity between variable. Below situation might indicate multicollinearity in the model:
 
-* Remove or add a variable in model and this action causes dramatically change of other variables' coefficient.
+* Remove or add a variable in the model and this action causes the dramatical changes of other variables' coefficients.
 
-* We consider it as important variable, while it is not statistically significant.
+* We consider it as an important variable while it is not statistically significant.
 
-* The sign of variables are opposited to our expectation.
+* The sign of variables are opposed to our expectation.
 
-* The confidence interval of important variable are very big.
+* The confidence interval of the important variables are very big.
 ```{r}
 library(car)
 vif(m1)
@@ -138,13 +138,13 @@ vif(m1)
 $VIF_{k}$ = $\frac{1}{1 - R_{k}^2}$, k = 1, 2, ..., p-1
 \end{center}
 
-$R_{k}^2$ is the R-square of model that the rest of variable fit on the variable $x_{k}$. 
+$R_{k}^2$ is the R-square of the model that the rest of variable fit on the variable $x_{k}$. 
 
-In our example, all the variables' VIF is bigger than 1, especially hp and wt. Recall that indeed the correlation between variable is high. Probably, we should remove some variables. We start from the large correlation, hp and carb. I choose to remove carb because I think hp(horse power) will be a more important variable when it comes to evaluating mpg(miles per gallon).
+In our example, all the variables' VIF is bigger than 1, especially hp and wt. Recall that indeed the correlation between variable is high. Probably, we should remove some variables. We start from the large correlation, hp and carb. I choose to remove carb because I think hp(horsepower) will be a more important variable when it comes to evaluating mpg(miles per gallon).
 
-If there is any variable's VIF greater than 10, it would be a strong warning that there is a multicollinearity. Also, if the average of VIF is greater that 1, it might be another warning too. However, we cannot judge which variable is linear-dependent on other variable directly by VIF. One way may be that repeat the step of adding and removing variable to make sure which variable is linear-dependent in the model.
+If there is any variable's VIF greater than 10, it would be a strong warning that there is a multicollinearity. Also, if the average of VIF is greater that 1, it might be another warning too. However, we cannot judge which variable is linearly dependent on other variables directly by VIF. One way may be that repeat the step of adding and removing variable to make sure which variable is linear-dependent in the model.
 
-Here, we construe the hp(horse power) as our main variable. Hence, in the following model, I will keep hp in my model
+Here, we construe the hp(horsepower) as our main variable. Hence, in the following model, I will keep hp in my model
 ```{r}
 m5 <- update(m1, ~ . - wt)
 summary(m5)
@@ -206,11 +206,11 @@ __3. Influential points__
 
 Here, we introduce three influential measures: DFFITS, DFBETAS and Cook's Distance.
 
-* DFFITS: The difference between fitted value(whole data) and fitted value(remove one data point). If DFFITS is big, it indicates that the data is influential to model. Here are two empirical standard:
+* DFFITS: The difference between fitted value(whole data) and fitted value(remove one data point). If DFFITS is big, it indicates that the data is influential to model. Here are two empirical standards:
 
 |$(DFFITS)_{i}$| > 1 (for small and moderate data) or |$(DFFITS)_{i}$| > 2$\sqrt{\frac{p}{n}}$ (for large data).
 
-* DFBETAS: The difference between coefficients with whole data and the coefficients(removing one data). Same as DFFITS, if DFBETAS is large, then the data is influential. Here are two empirical standard:
+* DFBETAS: The difference between coefficients with whole data and the coefficients(removing one data). Same as DFFITS, if DFBETAS is large, then the data is influential. Here are two empirical standards:
 
 |$(DFBETAS)_{i}$| > 1 (for small and moderate data) or |$(DFBETAS)_{i}$| > $\frac{2}{\sqrt{n}}$ (for large data).
 
@@ -289,7 +289,7 @@ The p-value is greater that $\alpha$(0.05). Hence, we do not reject the independ
 
 #Model Identification
 
-We can also do stepwise regression to selection our model while it really need more understanding about the data and its field. By that, we can judge our model more correctly and accurately. Heve, we just show the code in R that can do the step wise regression.
+We can also do the stepwise regression to selection our model while it really needs more understanding about the data and its field. By that, we can judge our model more correctly and accurately. Here, we just show the code in R that can do the stepwise regression.
 ```{r}
 library(leaps)
 ```
@@ -311,12 +311,12 @@ report
 mpg = `r round(coef(m7)[1], 4)` + `r round(coef(m7)[2], 4)` hp + `r round(coef(m7)[3], 4)` am
 \end{center}
 
-This is our final model. For fixed am(automatic or manual), per unit hp rise, the average mpg will be go down `r round(coef(m7)[2], 4)`. It also tells us that the automatic car will be more efficient than the manaul car.
+This is our final model. For fixed am(automatic or manual), per unit hp rising, the average mpg will go down `r round(coef(m7)[2], 4)`. It also tells us that the automatic car will be more efficient than the manual car.
 
 To conclude, when fitting a regression model, there is no a standard procedure to follow such as multicollinearity → outliers → influential points in this report. Instead, many step is interchangeable as long as the analysis is reasonable. Also, we do not consider interaction term which will be important when we fit a regression model, which is the future task we will discuss.
 
 #References
-*Multiple Regression http://www.statmethods.net/stats/regression.html
+* Multiple Regression http://www.statmethods.net/stats/regression.html
 
 * Regression Diagnostics http://www.statmethods.net/stats/rdiagnostics.html
 
