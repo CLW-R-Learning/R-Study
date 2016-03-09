@@ -1,18 +1,7 @@
----
-title: "Gaussian Discriminant Analysis"
-author: "Chih-Hui Wang(Jason)"
-date: 'May 06, 2015; Revised: March 03, 2016'
-output:
-  html_document: 
-    keep_md: yes
-  pdf_document:
-    fig_height: 4
-mainfont: Calibri
----
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(comment='')
-knitr::opts_chunk$set(fig.align='center')
-```
+# Gaussian Discriminant Analysis
+Chih-Hui Wang(Jason)  
+May 06, 2015; Revised: March 03, 2016  
+
 
 ### Gaussian Discriminant Analysis
 
@@ -53,36 +42,10 @@ The __prediction function__ becomes
 \end{align*}
 In 2-class case, the decision boundary can be written as $wx + \alpha=0$ (a linear classifier). For multi-class case, we just choose class $C$ that maximizes the $\delta_C=\frac{\mu_c}{\sigma^2}x - \frac{\mu_C^2}{2\sigma^2} + \log{\pi_C}$. 
 
-```{r LDA_special, fig.cap="Special Case of LDA", fig.width=8, echo=FALSE}
-# Special case
-x <- seq(-5, 5, by=0.01)
-
-par(mfrow=c(1, 2))
-# Figrue 1: Density of each distribution
-mu1 <- 1.25; mu2 <- -1.25
-plot(x, dnorm(x, mu1, 1),
-     main="Density of two normal distribution", ylab="Density",
-     xlim=c(-5, 5), type="l", lwd=2,
-     col="mediumorchid3")
-
-lines(x, dnorm(x, mu2, 1), lwd=2, col="forestgreen")
-
-# Decision boundary
-abline(v=0, lty=2, lwd=2)
-
-set.seed(1)
-# Figure 2: 
-x1 <- rnorm(20, mu1, 1)
-x2 <- rnorm(20, mu2, 1)
-g <- rep(c(1, 2), each=20)
-
-hist(x2, main="Simulation sample", xlab="X", ylab="Density",
-     col="forestgreen", xlim=c(-5, 5), border="forestgreen",
-     freq=FALSE)
-hist(x1, add=TRUE, col="mediumorchid3", freq=FALSE, density=50)
-abline(v=0, lty=2, lwd=2)
-abline(v=(mean(x1) + mean(x2))/2, lwd=2)
-```
+<div class="figure" style="text-align: center">
+<img src="Gaussian_Discriminant_Analysis_files/figure-html/LDA_special-1.png" alt="Special Case of LDA"  />
+<p class="caption">Special Case of LDA</p>
+</div>
 
 A special cass in 2-class: $\pi_C = \pi_D$. The decision boundary is
 $$\delta_C(x) - \delta_D(x) = \frac{\mu_C-\mu_D}{\sigma^2}x - \frac{\mu_C^2-\mu_D^2}{2\sigma^2} = 0$$
@@ -123,7 +86,8 @@ where $n_c$ is the number of observation in class $C$ and $n$ is the total numbe
 
 
 ### 4. Textbook Example
-```{r package2, message=FALSE}
+
+```r
 library(ISLR)
 library(car)
 library(MASS)
@@ -132,7 +96,8 @@ Default$default <- as.numeric(as.character(
 recode(Default$default, "'Yes'='1'; 'No'='0'")))
 ```
 
-```{r LDA}
+
+```r
 # LDA
 LDA <- lda(default ~ balance + student, data=Default)
 
@@ -145,7 +110,16 @@ t <- table(Predict=Prediction, True=Default$default)
 ftable(addmargins(t))
 ```
 
-```{r QDA}
+```
+        True     0     1   Sum
+Predict                       
+0             9644   252  9896
+1               23    81   104
+Sum           9667   333 10000
+```
+
+
+```r
 # QDA
 QDA <- qda(default ~ balance + student, data=Default)
 
@@ -154,7 +128,16 @@ t2 <- table(Predict=Prediction, True=Default$default)
 ftable(addmargins(t2))
 ```
 
-```{r threshold}
+```
+        True     0     1   Sum
+Predict                       
+0             9637   244  9881
+1               30    89   119
+Sum           9667   333 10000
+```
+
+
+```r
 threshold <- 0.2
 Prediction_new <- (predict(LDA, Default)$posterior[, 2] > threshold)*1
 
@@ -162,19 +145,18 @@ t_new <- table(Predict=Prediction_new, True=Default$default)
 ftable(addmargins(t_new))
 ```
 
+```
+        True     0     1   Sum
+Predict                       
+0             9432   138  9570
+1              235   195   430
+Sum           9667   333 10000
+```
+
 
 ### Performance Evaluation: ROC Curve
 
-```{r table, echo=FALSE, fig.width=5, fig.height=1}
-library(gridExtra)
-library(grid)
-d_table <- data.frame(c("0 (Predict)", "1 (Predict)"), c("True Negative (TN)", "False Positive (FP)"), c("False Negative (FN)", "True Positive (TP)"))
-names(d_table) <- c("", "0 (True)", "1 (True)")
-
-table_1 <- tableGrob(d_table, row=NULL)
-grid.newpage()
-grid.draw(table_1)
-```
+<img src="Gaussian_Discriminant_Analysis_files/figure-html/table-1.png" title="" alt="" style="display: block; margin: auto;" />
 
 
 There are several measure that can help us to determine the performance of our model or classifier.
@@ -191,13 +173,44 @@ There are several measure that can help us to determine the performance of our m
 
 6. Negative Predicted Value: $\dfrac{TN}{TN+FN}$
 
-```{r confusion_matrix, message=FALSE}
+
+```r
 library(caret)
 # Confusion Matrix
 confusionMatrix(t, positive="1")
 ```
 
-```{r ROC_AUC, message=FALSE, fig.width=4, fig.align='center'}
+```
+Confusion Matrix and Statistics
+
+       True
+Predict    0    1
+      0 9644  252
+      1   23   81
+                                          
+               Accuracy : 0.9725          
+                 95% CI : (0.9691, 0.9756)
+    No Information Rate : 0.9667          
+    P-Value [Acc > NIR] : 0.0004973       
+                                          
+                  Kappa : 0.3606          
+ Mcnemar's Test P-Value : < 2.2e-16       
+                                          
+            Sensitivity : 0.2432          
+            Specificity : 0.9976          
+         Pos Pred Value : 0.7788          
+         Neg Pred Value : 0.9745          
+             Prevalence : 0.0333          
+         Detection Rate : 0.0081          
+   Detection Prevalence : 0.0104          
+      Balanced Accuracy : 0.6204          
+                                          
+       'Positive' Class : 1               
+                                          
+```
+
+
+```r
 library(AUC)
 
 # ROC and AUC of the classifier
@@ -207,5 +220,7 @@ auc_value <- auc(roc(predict(LDA, Default)$posterior[, 2],
                      as.factor(Default$default)))
 text(0.4, 0.6, paste("AUC = ", round(auc_value, 4)))
 ```
+
+<img src="Gaussian_Discriminant_Analysis_files/figure-html/ROC_AUC-1.png" title="" alt="" style="display: block; margin: auto;" />
 
 
