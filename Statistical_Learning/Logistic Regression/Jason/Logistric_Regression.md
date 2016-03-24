@@ -1,15 +1,7 @@
----
-title: "Logistic Regression"
-author: "Chih-Hui Wang (Jason)"
-date: "Tuesday, April 21, 2015; Revised: March 24, 2016"
-output: 
-  html_document: 
-    keep_md: yes
----
-```{r setup, echo=FALSE}
-knitr::opts_chunk$set(comment="")
-knitr::opts_chunk$set(fig.align='center')
-```
+# Logistic Regression
+Chih-Hui Wang (Jason)  
+Tuesday, April 21, 2015; Revised: March 24, 2016  
+
 
 ### 1. Introduction to Generalized Linear Models(GLM)
 
@@ -32,7 +24,8 @@ $Binomial(n, p)$ | $log \frac{E(Y)}{n-E(Y)}$
 First, we introduce the logistic function or sigmoid function.
 $$s(x) = \dfrac{e^{\alpha + \beta x}}{1+e^{\alpha + \beta x}}$$
 
-```{r logistic_function}
+
+```r
 logistic <- function(x, alpha, beta){
     exp(alpha + beta*x)/(1 + exp(alpha + beta*x))
 }
@@ -57,6 +50,8 @@ text(9, 0.9, "  > 0", cex=1.5); text(-7, 0.9, "  < 0", cex=1.5)
 text(1.5, 0.55, expression(beta), cex=1.5)
 text(2.5, 0.55, "  = 0", cex=1.5)
 ```
+
+<img src="Logistric_Regression_files/figure-html/logistic_function-1.png" title="" alt="" style="display: block; margin: auto;" />
 
 If $\beta$ is bigger than 0, then the probability will increase as x goes up; on the other hand, if $\beta$ is less than 0, the probability will decrease as x goes up. Finally, when $\beta$ is equal to 0, the probability will always be 0.5 given $\alpha$ is 0.
 
@@ -117,7 +112,8 @@ Keep updating the parameters until the difference is smaller than a certain thre
 
 Idea: You are at point $v$. Approximate the function near $v$ by a quadratic function and jump to its unique critical point. Repeat until convergence.    
 We use Taylor series: $\Delta l(\beta) = \Delta l(v) + (\Delta^2 l(v))(\beta - v) + O(|\beta - v|^2)$ and find the critical point by setting $\Delta l(\beta) = 0$. We get $w = v - (\Delta^2 l(v))^{-1} \Delta l(v))$. Here is the summary of the algorithm:
-```{r pseudoocde, eval=FALSE}
+
+```r
 # Algorithm: picking starting point w
 # repeat until convergence:
 #       e <- solution to the linear system (\Delta^2 l(\beta)e=-\Delta l(\beta)) 
@@ -136,7 +132,8 @@ $$\mbox{Generalized linear model} \rightarrow \mbox{analysis of deviance (compar
 1. Wald test    
 The Wald test statsitic　$$Z = \dfrac{\hat \beta}{ASE} \xrightarrow[ ]{D} N(0, 1)$$
 The summary function to glm will automatically provide us the Wald test.
-```{r wald_test}
+
+```r
 # Simulated Data
 y <- rbinom(100, 1, 0.8)
 x <- rnorm(100)
@@ -145,28 +142,81 @@ model <- glm(y ~ x, family=binomial)
 coef(summary(model))
 ```
 
+```
+             Estimate Std. Error  z value     Pr(>|z|)
+(Intercept) 1.5461923  0.2820321 5.482327 4.197674e-08
+x           0.5328224  0.2573481 2.070435 3.841163e-02
+```
+
 2. Likelihood ratio test    
 The likelihood-ratio statistic
 $$l = -2log(\dfrac{l_{o}}{l_{1}}) = -2(log l_{0} - log l_{1}) = -2(L_{0} - L_{1}) \xrightarrow[ ]{D} \chi^2_{1}$$
 
-```{r likelihood_ratio_test, message=FALSE}
+
+```r
 library(lmtest)
 # Likelihood ratio test
 lrtest(model)
 ```
 
+```
+Likelihood ratio test
+
+Model 1: y ~ x
+Model 2: y ~ 1
+  #Df  LogLik Df Chisq Pr(>Chisq)  
+1   2 -47.726                      
+2   1 -50.040 -1 4.629    0.03144 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+```
+
 The log likelihood function here is equal to the deviance divided by 2. Also we can use the anova function to do likelihood ratio test.
 
-```{r anova_LRT}
+
+```r
 anova(model, test="LRT")
+```
+
+```
+Analysis of Deviance Table
+
+Model: binomial, link: logit
+
+Response: y
+
+Terms added sequentially (first to last)
+
+     Df Deviance Resid. Df Resid. Dev Pr(>Chi)  
+NULL                    99    100.080           
+x     1    4.629        98     95.451  0.03144 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 3. Score (Rao) test
 The efficient score statistics　$$S \xrightarrow[ ]{D}\chi^2_{1}$$
 
 We can use the anova function to do likelihood ratio test.
-```{r anova_score}
+
+```r
 anova(model, test="Rao")
+```
+
+```
+Analysis of Deviance Table
+
+Model: binomial, link: logit
+
+Response: y
+
+Terms added sequentially (first to last)
+
+     Df Deviance Resid. Df Resid. Dev   Rao Pr(>Chi)  
+NULL                    99    100.080                 
+x     1    4.629        98     95.451 4.508  0.03374 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ```
 
 In generally, the three test would give you the same conclusion for significance. If it is not, the suggestion is to collect more data. However, if you cannot get more data, then take the likelihood ratio test because LR test is more conservative.
@@ -184,12 +234,24 @@ b. Less sensitive to outliers.
 c. More robust on some non-Gaussian distribution.
 
 ### 4. Example on the Textbook
-```{r}
+
+```r
 library(ISLR)
 summary(Default)
 ```
 
-```{r, fig.align='center'}
+```
+ default    student       balance           income     
+ No :9667   No :7056   Min.   :   0.0   Min.   :  772  
+ Yes: 333   Yes:2944   1st Qu.: 481.7   1st Qu.:21340  
+                       Median : 823.6   Median :34553  
+                       Mean   : 835.4   Mean   :33517  
+                       3rd Qu.:1166.3   3rd Qu.:43808  
+                       Max.   :2654.3   Max.   :73554  
+```
+
+
+```r
 with(Default, plot(balance, income, type="n", xlab="Balance", ylab="Income"))
 split_data <- split(Default, Default$default)
 
@@ -200,13 +262,17 @@ with(no_df, points(balance, income, pch=1, cex=0.8, col="dodgerblue"))
 with(df, points(balance, income, pch="+", cex=1.2, col="darkorange"))
 ```
 
-```{r}
+<img src="Logistric_Regression_files/figure-html/unnamed-chunk-2-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
 library(car)
 Default$default <- as.numeric(as.character(
     recode(Default$default, "'Yes'='1'; 'No'='0'")))
 ```
 
-```{r}
+
+```r
 #Page 131
 #Regression
 model1 <- lm(default ~ balance, data=Default)
@@ -215,7 +281,8 @@ model1 <- lm(default ~ balance, data=Default)
 model2 <- glm(default ~ balance, data=Default, family=binomial)
 ```
 
-```{r, fig.align='center', fig.height=4, fig.width=7.5}
+
+```r
 par(mfrow=c(1, 2))
 with(Default, plot(balance, default, col="darkorange",
                    pch="|", cex=0.5, main="Regression",
@@ -233,8 +300,11 @@ curve(predict(model2, data.frame(balance=x), type="resp"),
       add=TRUE, lwd=2, col="dodgerblue")
 ```
 
+<img src="Logistric_Regression_files/figure-html/unnamed-chunk-5-1.png" title="" alt="" style="display: block; margin: auto;" />
 
-```{r}
+
+
+```r
 #balance
 model2 <- glm(default ~ balance, data=Default, family=binomial)
 #student
@@ -243,7 +313,8 @@ model3 <- glm(default ~ student, data=Default, family=binomial)
 model4 <- glm(default ~ balance + income + student, data=Default, family=binomial)
 ```
 
-```{r, fig.align='center'}
+
+```r
 Default$student <- as.numeric(as.character(recode(Default$student, "'Yes'='1'; 'No'='0'")))
 
 fit_p <- fitted(model4)
@@ -262,11 +333,16 @@ legend(500, 0.8, lty=1, lwd=2, col=c("dodgerblue","darkorange"),
        legend=c("Student", "Nonstudent"))
 ```
 
-```{r, fig.align='center'}
+<img src="Logistric_Regression_files/figure-html/unnamed-chunk-7-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+
+```r
 boxplot(balance ~ student, data=Default,
         main="Balance for student & non student",
         xlab="Student", ylab="Balance")
 ```
+
+<img src="Logistric_Regression_files/figure-html/unnamed-chunk-8-1.png" title="" alt="" style="display: block; margin: auto;" />
 
 ### 5. Multinomial Logistic Regression
 
@@ -280,7 +356,7 @@ p_{k}=p[y=k] &= \dfrac{e^{\alpha_{k}+x\beta_{k}}}{1+\sum_{i=2}^{g}e^{\alpha_{i}+
 The sum of $p_{1}, p_{2},..., p_{g}$ is equal to 1. The category 1 here is our standard category while any other group could be use instead. The log odds interpretation of the logistic regression model still applies, as
 $$log(\dfrac{p_{k}}{p_{1}})=\alpha_{k}+x\beta_{k} for k=2, ...g$$
 
-However, the interpretation become more complicated. Changing the the explanatory variable $x_{i}$ by on unit changes the odds of getting an outcome from group $k$ relative to getting an outcome from gropu 1. (Note the log odds now become $p_{k}$ v.s. $p_{1}$) For instance, if $\beta_{k}$ = 1.5, per unit change in variable $x_{i}$ increase the odds by mutiplying by $e^{1.5}$ = `r round(exp(1.5), 2)`. Similarly, per unit change in x changes the odds of getting an outcome from group $k$ relative to getting an outcome from group $r$ by factor $e^{\beta_{k}-\beta_{r}}$ because
+However, the interpretation become more complicated. Changing the the explanatory variable $x_{i}$ by on unit changes the odds of getting an outcome from group $k$ relative to getting an outcome from gropu 1. (Note the log odds now become $p_{k}$ v.s. $p_{1}$) For instance, if $\beta_{k}$ = 1.5, per unit change in variable $x_{i}$ increase the odds by mutiplying by $e^{1.5}$ = 4.48. Similarly, per unit change in x changes the odds of getting an outcome from group $k$ relative to getting an outcome from group $r$ by factor $e^{\beta_{k}-\beta_{r}}$ because
 
 \begin{align}
 \frac{p_{k}}{p_{r}} &= \dfrac{e^{\alpha_{k}+x\beta_{k}}}{e^{\alpha_{r}+x\beta_{r}}}=e^{\alpha{k}-\alpha{r}+x(\beta_{k}-\beta{r})}\\
@@ -288,7 +364,8 @@ log(\dfrac{p_{k}}{p_{1}}) &= \alpha_{k}-\alpha_{r}+x(\beta_{k}-\beta{r})
 \end{align}
 
 The interpreation is so complex, which may be the reason why the textbook skips this session. We generate a fictional data to run the multinomail logistic regression.
-```{r simulated_data, message=FALSE}
+
+```r
 # 5 categories
 y <- gl(5, 20)
 # normal which increases the mean
@@ -301,16 +378,77 @@ m_model <- vglm(y ~ x, multinomial)
 summary(m_model)
 ```
 
-```{r fittedvalue}
+```
+
+Call:
+vglm(formula = y ~ x, family = multinomial)
+
+Pearson residuals:
+                       Min      1Q   Median         3Q   Max
+log(mu[,1]/mu[,5]) -0.9829 -0.2916 -0.02059 -0.0002813 6.491
+log(mu[,2]/mu[,5]) -1.4233 -0.4828 -0.11801 -0.0079672 2.641
+log(mu[,3]/mu[,5]) -1.8116 -0.4331 -0.21230 -0.0475515 3.125
+log(mu[,4]/mu[,5]) -1.7402 -0.4738 -0.20762 -0.0105889 3.256
+
+Coefficients:
+              Estimate Std. Error z value Pr(>|z|)    
+(Intercept):1  12.8295     2.2566   5.685 1.30e-08 ***
+(Intercept):2  11.0146     2.1775   5.058 4.23e-07 ***
+(Intercept):3   7.9210     1.9831   3.994 6.49e-05 ***
+(Intercept):4   4.5966     1.7142   2.682  0.00733 ** 
+x:1            -4.3382     0.7230  -6.000 1.97e-09 ***
+x:2            -3.1711     0.6070  -5.224 1.75e-07 ***
+x:3            -1.9549     0.4783  -4.087 4.37e-05 ***
+x:4            -1.0111     0.3685  -2.744  0.00607 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Number of linear predictors:  4 
+
+Names of linear predictors: 
+log(mu[,1]/mu[,5]), log(mu[,2]/mu[,5]), log(mu[,3]/mu[,5]), log(mu[,4]/mu[,5])
+
+Dispersion Parameter for multinomial family:   1
+
+Residual deviance: 209.3107 on 392 degrees of freedom
+
+Log-likelihood: -104.6553 on 392 degrees of freedom
+
+Number of iterations: 7 
+```
+
+
+```r
 # Probability in each group
 head(round(fitted(m_model), 2))
 ```
 
-```{r prediction}
+```
+     1    2    3    4 5
+1 0.55 0.37 0.07 0.01 0
+2 0.50 0.39 0.09 0.01 0
+3 0.86 0.14 0.01 0.00 0
+4 0.97 0.03 0.00 0.00 0
+5 0.77 0.21 0.02 0.00 0
+6 0.52 0.39 0.09 0.01 0
+```
+
+
+```r
 # Prediction
 fit <- unlist(apply(round(fitted(m_model), 2), 1,
              function(x) as.numeric(which(x == max(x))[1])))
 
 table(true=y, predict=fit)
+```
+
+```
+    predict
+true  1  2  3  4  5
+   1 15  2  3  0  0
+   2  6  9  5  0  0
+   3  0  8  7  4  1
+   4  0  3  4  6  7
+   5  0  0  1  6 13
 ```
 
