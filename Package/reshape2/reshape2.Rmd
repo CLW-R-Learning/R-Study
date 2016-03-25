@@ -1,10 +1,8 @@
 ---
-title: "Package: reshape2"
-author: "Jason"
-date: "2015年7月8日"
-output: 
-  html_document: 
-    keep_md: yes
+title: "R Package: reshape2"
+author: "Chih-Hui Wang (Jason)"
+date: "July 08, 2015; Revised: March 24, 2016"
+output: pdf_document
 ---
 ```{r setup, echo=FALSE}
 knitr::opts_chunk$set(comment="")
@@ -12,10 +10,12 @@ knitr::opts_chunk$set(fig.align='center')
 ```
 
 ```{r package, message=FALSE}
-library(reshape2); library(ggplot2); library(dplyr)
+library(reshape2)
+library(ggplot2)
+library(dplyr)
 ```
 
-`reshape2` is a package that provide functions for us to manipulate with the data. It is very good at transforming the data from *wide* format to *long* format or otherwise. 
+`reshape2` is a package that provide functions for us to manipulate with the data, especially for transforming the data between *wide* format and *long* format. 
 
 The **wide** format is shown below. It means that a column in the data represent one variable/feature of the data. 
 ```{r demo1}
@@ -25,7 +25,7 @@ And this is the **long** format
 ```{r demo2}
 melt(data.frame(Var1=1:3, Var2=4:6, Var3=7:9))
 ```
-Owing to the processing(dplyr) or grahp(ggplot), sometimes it will be very useful to transform the wide format data to long format. `reshape2` mainly provide two function to deal with two situation.
+Owing to the processing(dplyr) or graph(ggplot), sometimes it may be useful to transform the wide format data to long format. `reshape2` mainly provides two functions to deal with two situations.
 
 wide to long: `melt`
 long to wide: `cast`
@@ -34,18 +34,18 @@ long to wide: `cast`
 # melt
 This is a toy example that I creat to use to illustrate the `melt`.
 ```{r toydata}
-#Toy data
+# Toy example
 our_team <- data.frame(name=c("Jason", "Oracle", "Sanly"),
                 height=c(182, 176, 160),
                 weight=c(75, 77, 45))
 our_team
 ```
-Q1. Plot the variable `height` & `weight` together and use the color to distinguish two variable.
+Q1. Plot the variable `height` & `weight` together and use the color to distinguish two variables.
 ```{r melt}
 m <- melt(our_team, id="name")
 m
 ```
-It mainly keep the variable you set in `id= ` and transform other variables to two column, one for varialbe and one for value.
+It mainly keeps the variable you set in `id= ` and transform other variables to two column, one for variable and one for value.
 ```{r Graph}
 ggplot(m) + geom_line(aes(x=name, y=value, group=variable, color=variable), size=1) +
   labs(title="CLW_R_Learning Group") +
@@ -67,12 +67,11 @@ m2
 ```
 You can transform the data back to original by dcast.
 ```{r dcast}
-#Make it back to origin
+# Make it back to origin
 d <- dcast(m2, name + year ~ variable)
 d
-```
-Another way to do it.
-```{r another}
+
+# Another way to do it.
 dcast(m2, ... ~ variable)
 ```
 

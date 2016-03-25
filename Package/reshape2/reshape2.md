@@ -1,14 +1,16 @@
-# Package: reshape2
-Jason  
-2015年7月8日  
+# R Package: reshape2
+Chih-Hui Wang (Jason)  
+July 08, 2015; Revised: March 24, 2016  
 
 
 
 ```r
-library(reshape2); library(ggplot2); library(dplyr)
+library(reshape2)
+library(ggplot2)
+library(dplyr)
 ```
 
-`reshape2` is a package that provide functions for us to manipulate with the data. It is very good at transforming the data from *wide* format to *long* format or otherwise. 
+`reshape2` is a package that provide functions for us to manipulate with the data, especially for transforming the data between *wide* format and *long* format. 
 
 The **wide** format is shown below. It means that a column in the data represent one variable/feature of the data. 
 
@@ -44,7 +46,7 @@ No id variables; using all as measure variables
 8     Var3     8
 9     Var3     9
 ```
-Owing to the processing(dplyr) or grahp(ggplot), sometimes it will be very useful to transform the wide format data to long format. `reshape2` mainly provide two function to deal with two situation.
+Owing to the processing(dplyr) or graph(ggplot), sometimes it may be useful to transform the wide format data to long format. `reshape2` mainly provides two functions to deal with two situations.
 
 wide to long: `melt`
 long to wide: `cast`
@@ -54,7 +56,7 @@ long to wide: `cast`
 This is a toy example that I creat to use to illustrate the `melt`.
 
 ```r
-#Toy data
+# Toy example
 our_team <- data.frame(name=c("Jason", "Oracle", "Sanly"),
                 height=c(182, 176, 160),
                 weight=c(75, 77, 45))
@@ -67,7 +69,7 @@ our_team
 2 Oracle    176     77
 3  Sanly    160     45
 ```
-Q1. Plot the variable `height` & `weight` together and use the color to distinguish two variable.
+Q1. Plot the variable `height` & `weight` together and use the color to distinguish two variables.
 
 ```r
 m <- melt(our_team, id="name")
@@ -83,7 +85,7 @@ m
 5 Oracle   weight    77
 6  Sanly   weight    45
 ```
-It mainly keep the variable you set in `id= ` and transform other variables to two column, one for varialbe and one for value.
+It mainly keeps the variable you set in `id= ` and transform other variables to two column, one for variable and one for value.
 
 ```r
 ggplot(m) + geom_line(aes(x=name, y=value, group=variable, color=variable), size=1) +
@@ -155,7 +157,7 @@ m2
 You can transform the data back to original by dcast.
 
 ```r
-#Make it back to origin
+# Make it back to origin
 d <- dcast(m2, name + year ~ variable)
 d
 ```
@@ -175,9 +177,9 @@ d
 11  Sanly 2014    157     47
 12  Sanly 2015    160     45
 ```
-Another way to do it.
 
 ```r
+# Another way to do it.
 dcast(m2, ... ~ variable)
 ```
 
@@ -246,6 +248,7 @@ our_team2 %>%
 Source: local data frame [3 x 3]
 
     name height weight
+  (fctr)  (dbl)  (dbl)
 1  Jason 174.00  70.25
 2 Oracle 172.25  65.50
 3  Sanly 168.25  59.25
